@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Spark Agency</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0c10;overflow:hidden;height:100vh;font-family:'IBM Plex Mono',monospace}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;position:absolute;inset:0;width:100%;height:100%}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#12131a}
+::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:2px}
+
+.app{display:flex;flex-direction:column;height:100vh}
+.viewport{flex:1;position:relative;overflow:hidden}
+
+/* Bottom panel */
+.bottom{height:140px;flex-shrink:0;background:#12131a;border-top:2px solid #2a2d3a;display:flex}
+.panel{padding:10px 14px;border-right:1px solid #2a2d3a;overflow-y:auto}
+.panel:last-child{border-right:none;flex:1}
+.panel-title{font-family:'Silkscreen',cursive;font-size:8px;color:#5a5d6e;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+
+.emp{display:flex;align-items:center;gap:8px;padding:3px 0}
+.emp-pip{width:8px;height:8px;border-radius:1px;flex-shrink:0}
+.emp-name{font-family:'Silkscreen',cursive;font-size:8px;color:#c8cad6}
+.emp-role{font-family:'Silkscreen',cursive;font-size:7px;color:#5a5d6e}
+.emp-status{font-family:'Silkscreen',cursive;font-size:7px}
+
+.info-row{display:flex;justify-content:space-between;font-family:'Silkscreen',cursive;font-size:8px;padding:2px 0}
+.info-label{color:#5a5d6e}
+.info-value{color:#c8cad6}
+
+.log-entry{font-family:'Silkscreen',cursive;font-size:7px;line-height:1.7;display:flex;gap:6px}
+.log-time{color:#5a5d6e;flex-shrink:0;width:36px}
+
+/* HUD */
+.hud-tl{position:fixed;top:12px;left:14px;z-index:10;pointer-events:none}
+.hud-tl .title{font-family:'Silkscreen',cursive;font-size:10px;color:#4ade80;letter-spacing:2px;text-shadow:0 0 8px rgba(74,222,128,0.3)}
+.hud-tl .sub{font-family:'Silkscreen',cursive;font-size:7px;color:#5a5d6e;letter-spacing:1px;margin-top:3px}
+
+.hud-tr{position:fixed;top:12px;right:14px;z-index:10;text-align:right}
+.hud-time{font-family:'Silkscreen',cursive;font-size:10px;color:#c8cad6;letter-spacing:1px}
+.hud-day{font-family:'Silkscreen',cursive;font-size:7px;color:#5a5d6e;margin-top:2px}
+.hud-speeds{display:flex;gap:2px;justify-content:flex-end;margin-top:6px}
+.spd-btn{font-family:'Silkscreen',cursive;font-size:7px;padding:2px 6px;border:1px solid #2a2d3a;background:none;color:#5a5d6e;cursor:pointer;transition:all .1s}
+.spd-btn:hover{border-color:#5a5d6e}
+.spd-btn.on{color:#4ade80;border-color:#4ade80}
+
+.tooltip{position:fixed;background:#12131a;border:1px solid #2a2d3a;padding:6px 10px;font-family:'Silkscreen',cursive;z-index:100;pointer-events:none;display:none;max-width:160px}
+.tt-name{font-size:8px;color:#4ade80}
+.tt-role{font-size:7px;color:#5a5d6e}
+.tt-state{font-size:7px;margin-top:2px}
+
+.s-working{color:#4ade80}.s-idle{color:#fbbf24}.s-walking{color:#60a5fa}.s-coffee{color:#a78bfa}.s-meeting{color:#f472b6}.s-chatting{color:#fbbf24}.s-thinking{color:#60a5fa}
+.l-action{color:#4ade80}.l-event{color:#60a5fa}.l-chat{color:#fbbf24}.l-system{color:#5a5d6e}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="viewport">
+    <canvas id="canvas"></canvas>
+  </div>
+  <div class="bottom">
+    <div class="panel" style="width:240px" id="team-panel"><div class="panel-title">Team</div></div>
+    <div class="panel" style="width:160px" id="info-panel"><div class="panel-title">Agency</div></div>
+    <div class="panel" id="log-panel"><div class="panel-title">Activity</div></div>
+  </div>
+</div>
+<div class="hud-tl"><div class="title">SPARK AGENCY</div><div class="sub">Marketing &amp; Creative · Est. 2024</div></div>
+<div class="hud-tr">
+  <div class="hud-time" id="hud-time">09:00</div>
+  <div class="hud-day" id="hud-day">Monday</div>
+  <div class="hud-speeds">
+    <button class="spd-btn on" onclick="setSpeed(1)">1x</button>
+    <button class="spd-btn" onclick="setSpeed(3)">3x</button>
+    <button class="spd-btn" onclick="setSpeed(8)">8x</button>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"><div class="tt-name"></div><div class="tt-role"></div><div class="tt-state"></div></div>
+
+<script>
+// ================================================================
+//  ECS ENGINE
+// ================================================================
+class ComponentStore {
+  constructor() { this._data = new Map(); }
+  set(e, v) { this._data.set(e, v); }
+  get(e) { return this._data.get(e); }
+  has(e) { return this._data.has(e); }
+  delete(e) { this._data.delete(e); }
+  keys() { return this._data.keys(); }
+  entries() { return this._data.entries(); }
+  get size() { return this._data.size; }
+}
+
+class World {
+  constructor() {
+    this._nextId = 1;
+    this._entities = new Set();
+    this._stores = new Map();
+    this._systems = [];
+    this._listeners = new Map();
+  }
+  spawn() { const id = this._nextId++; this._entities.add(id); return id; }
+  despawn(e) { this._entities.delete(e); for (const s of this._stores.values()) s.delete(e); }
+  store(name) {
+    if (!this._stores.has(name)) this._stores.set(name, new ComponentStore());
+    return this._stores.get(name);
+  }
+  query(...names) {
+    const stores = names.map(n => this._stores.get(n)).filter(Boolean);
+    if (stores.length !== names.length) return [];
+    const smallest = stores.reduce((a, b) => a.size < b.size ? a : b);
+    const result = [];
+    for (const e of smallest.keys()) {
+      if (stores.every(s => s.has(e))) result.push(e);
+    }
+    return result;
+  }
+  addSystem(id, fn, priority = 0) {
+    this._systems.push({ id, fn, priority });
+    this._systems.sort((a, b) => a.priority - b.priority);
+  }
+  tick(dt) { for (const s of this._systems) s.fn(this, dt); }
+  on(evt, fn) {
+    if (!this._listeners.has(evt)) this._listeners.set(evt, new Set());
+    this._listeners.get(evt).add(fn);
+  }
+  emit(evt, data) { this._listeners.get(evt)?.forEach(fn => fn(data)); }
+}
+
+// ================================================================
+//  SEEDED RNG
+// ================================================================
+class RNG {
+  constructor(seed = 42) { this.s = seed; }
+  next() { this.s = (this.s * 1664525 + 1013904223) & 0xFFFFFFFF; return (this.s >>> 0) / 0xFFFFFFFF; }
+  int(a, b) { return Math.floor(this.next() * (b - a + 1)) + a; }
+  chance(p) { return this.next() < p; }
+  pick(arr) { return arr[Math.floor(this.next() * arr.length)]; }
+  normal(m = 0, s = 1) { return m + s * Math.sqrt(-2 * Math.log(this.next() || .0001)) * Math.cos(2 * Math.PI * this.next()); }
+}
+const rng = new RNG(12345);
+
+// ================================================================
+//  PATHFINDING (BFS)
+// ================================================================
+function findPath(sx, sy, ex, ey, tilemap) {
+  if (sx === ex && sy === ey) return [];
+  const h = tilemap.length, w = tilemap[0].length;
+  const key = (x, y) => (x << 16) | y;
+  const queue = [{ x: sx, y: sy, path: [] }];
+  const visited = new Set([key(sx, sy)]);
+  const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+  while (queue.length) {
+    const { x, y, path } = queue.shift();
+    for (const [dx, dy] of dirs) {
+      const nx = x+dx, ny = y+dy;
+      if (nx === ex && ny === ey) return [...path, {x:nx,y:ny}];
+      if (nx<0||nx>=w||ny<0||ny>=h) continue;
+      if (!tilemap[ny][nx].walkable) continue;
+      const k = key(nx,ny);
+      if (visited.has(k)) continue;
+      visited.add(k);
+      queue.push({x:nx,y:ny,path:[...path,{x:nx,y:ny}]});
+    }
+  }
+  return [];
+}
+
+// ================================================================
+//  MAP DATA
+// ================================================================
+const MAP_ASCII = [
+  'WWWWWWWWWWWWWWWWWWWW',
+  'W........O.........W',
+  'W..................W',
+  'W..DC..DC....B.....W',
+  'W..................W',
+  'W..DC..........DC..W',
+  'W..................W',
+  'W......RRR.........W',
+  'W......RRR...P.....W',
+  'W......RRR.........W',
+  'W..P...........K...W',
+  'W..................W',
+  'W..................W',
+  'WWWWWWWWWWWWWWWWWWWW',
+];
+const MAP_W = 20, MAP_H = 14;
+
+const TILE_CHARS = {
+  W:{walkable:false,type:'wall'},'.': {walkable:true,type:'floor'},
+  R:{walkable:true,type:'rug'},O:{walkable:true,type:'door'},
+  D:{walkable:false,type:'floor'},C:{walkable:true,type:'floor'},
+  P:{walkable:false,type:'floor'},K:{walkable:false,type:'floor'},
+  B:{walkable:false,type:'floor'},
+};
+
+const tilemap = [];
+const furnitureDefs = [];
+for (let y = 0; y < MAP_H; y++) {
+  const row = [];
+  for (let x = 0; x < MAP_ASCII[y].length; x++) {
+    const ch = MAP_ASCII[y][x];
+    const t = TILE_CHARS[ch] || TILE_CHARS['.'];
+    row.push({ ...t, variant: t.type === 'floor' ? (x+y)%2 : 0 });
+    if (ch==='D') furnitureDefs.push({type:'desk',x,y,interact:{x:x+1,y},cat:'workspace'});
+    if (ch==='P') furnitureDefs.push({type:'plant',x,y,cat:'decoration'});
+    if (ch==='K') furnitureDefs.push({type:'coffee_machine',x,y,interact:{x:x-1,y},cat:'social'});
+    if (ch==='B') furnitureDefs.push({type:'whiteboard',x,y,interact:{x,y:y+1},cat:'utility'});
+    if (ch==='O') furnitureDefs.push({type:'door',x,y,cat:'decoration'});
+  }
+  tilemap.push(row);
+}
+
+// ================================================================
+//  CHARACTER DEFINITIONS
+// ================================================================
+const CHARACTERS = [
+  { id:'maya', name:'Maya Chen', role:'CEO / Founder', dept:'Leadership', label:'CEO',
+    colors:{shirt:'#f472b6',hair:'#1c1917',skin:'#deb887'},
+    spawn:{x:7,y:7}, desk:null,
+    weights:{work:.15,coffee:.15,wander:.20,chat:.35,whiteboard:.15},
+    tasks:['reviewing strategy','updating investor deck','writing team memo'] },
+  { id:'alex', name:'Alex Rivera', role:'Content Strategist', dept:'Content', label:'Content',
+    colors:{shirt:'#60a5fa',hair:'#92400e',skin:'#d2a679'},
+    spawn:{x:4,y:3}, desk:0,
+    weights:{work:.55,coffee:.15,wander:.10,chat:.15,whiteboard:.05},
+    tasks:['writing blog post','drafting email campaign','reviewing analytics','updating content calendar'] },
+  { id:'jordan', name:'Jordan Park', role:'Ads Manager', dept:'Paid Media', label:'Ads',
+    colors:{shirt:'#4ade80',hair:'#1c1917',skin:'#f0c8a0'},
+    spawn:{x:7,y:3}, desk:1,
+    weights:{work:.60,coffee:.15,wander:.05,chat:.10,whiteboard:.10},
+    tasks:['optimizing ad spend','reviewing CTR data','setting up A/B test','adjusting targeting'] },
+  { id:'sam', name:'Sam Okafor', role:'Designer', dept:'Creative', label:'Design',
+    colors:{shirt:'#fbbf24',hair:'#44403c',skin:'#c68e17'},
+    spawn:{x:4,y:5}, desk:2,
+    weights:{work:.50,coffee:.20,wander:.10,chat:.10,whiteboard:.10},
+    tasks:['designing banner ads','updating brand assets','creating social graphics','revising landing page'] },
+];
+
+// ================================================================
+//  WORLD SETUP (FACTORY)
+// ================================================================
+const world = new World();
+const deskEntities = [];
+const personEntities = new Map();
+
+// Spawn furniture
+furnitureDefs.forEach(f => {
+  const e = world.spawn();
+  world.store('position').set(e, {x:f.x, y:f.y});
+  world.store('appearance').set(e, {spriteType:f.type, zIndex:f.type==='rug'?0:5});
+  world.store('furnitureTag').set(e, {category:f.cat});
+  if (f.interact) world.store('interactable').set(e, {interactionPoint:f.interact, inUseBy:null});
+  if (f.type === 'desk') deskEntities.push(e);
+});
+
+// Spawn people
+CHARACTERS.forEach(ch => {
+  const e = world.spawn();
+  personEntities.set(ch.id, e);
+  world.store('position').set(e, {x:ch.spawn.x, y:ch.spawn.y});
+  world.store('facing').set(e, {direction:'down'});
+  world.store('appearance').set(e, {
+    spriteType:'person', primaryColor:ch.colors.shirt,
+    secondaryColor:ch.colors.hair, tertiaryColor:ch.colors.skin, zIndex:10
+  });
+  world.store('animation').set(e, {frame:0, timer:0, speed:200, frameCount:4});
+  world.store('statusIndicator').set(e, {color:'#4ade80', visible:true, pulse:false});
+  world.store('identity').set(e, {name:ch.name, role:ch.role, department:ch.dept, shortLabel:ch.label});
+  world.store('behavior').set(e, {current:ch.desk!==null?'working':'idle', timer:200+rng.next()*400, nextState:null, metadata:{}});
+  world.store('energy').set(e, {current:85+rng.next()*15, max:100});
+  world.store('morale').set(e, {current:65+rng.next()*25});
+  world.store('charDef').set(e, ch); // store the full def for behavior system
+  if (ch.desk !== null && deskEntities[ch.desk]) {
+    world.store('deskAssignment').set(e, {deskEntity:deskEntities[ch.desk], seatOffset:{x:1,y:0}});
+  }
+});
+
+// ================================================================
+//  SYSTEMS
+// ================================================================
+
+// --- Movement System ---
+function movementSystem(world, dt) {
+  for (const e of world.query('position','pathFollower')) {
+    const pos = world.store('position').get(e);
+    const pf = world.store('pathFollower').get(e);
+    if (!pf.path.length) continue;
+
+    const target = pf.path[0];
+    const dx = target.x - pos.x, dy = target.y - pos.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    const step = pf.speed * (dt/1000);
+
+    if (dist <= step) {
+      pos.x = target.x; pos.y = target.y;
+      pf.path.shift();
+      if (!pf.path.length) {
+        const beh = world.store('behavior').get(e);
+        if (beh?.nextState) { beh.current = beh.nextState; beh.nextState = null; }
+        world.store('pathFollower').delete(e);
+      }
+    } else {
+      pos.x += (dx/dist)*step;
+      pos.y += (dy/dist)*step;
+    }
+
+    // Facing
+    const f = world.store('facing').get(e);
+    if (f) f.direction = Math.abs(dx)>Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'down':'up');
+
+    // Walk animation
+    const anim = world.store('animation').get(e);
+    if (anim) { anim.timer += dt; if (anim.timer >= anim.speed) { anim.timer = 0; anim.frame = (anim.frame+1)%anim.frameCount; } }
+  }
+}
+
+// --- Behavior System ---
+function behaviorSystem(world, dt) {
+  if (SIM.speed === 0) return;
+  for (const e of world.query('behavior','position','identity')) {
+    const beh = world.store('behavior').get(e);
+    // Skip if walking
+    if (world.store('pathFollower').has(e) && world.store('pathFollower').get(e).path.length) continue;
+    beh.timer -= dt * SIM.speed * 0.06;
+    if (beh.timer <= 0) decideBehavior(world, e);
+    // Status indicator
+    const si = world.store('statusIndicator').get(e);
+    if (si) {
+      const colors = {working:'#4ade80',idle:'#fbbf24',walking:'#60a5fa',coffee:'#a78bfa',meeting:'#f472b6',chatting:'#fbbf24',thinking:'#60a5fa'};
+      si.color = colors[beh.current] || '#5a5d6e';
+      si.pulse = beh.current === 'working';
+    }
+  }
+}
+
+function decideBehavior(world, entity) {
+  const ch = world.store('charDef').get(entity);
+  const beh = world.store('behavior').get(entity);
+  const pos = world.store('position').get(entity);
+  if (!ch || !beh || !pos) return;
+
+  const w = ch.weights;
+  const r = rng.next();
+  let cum = 0, chosen = 'work';
+  for (const [k,v] of Object.entries(w)) { cum += v; if (r < cum) { chosen = k; break; } }
+
+  switch (chosen) {
+    case 'work': doWork(world, entity, ch, beh, pos); break;
+    case 'coffee': doCoffee(world, entity, ch, beh, pos); break;
+    case 'chat': doChat(world, entity, ch, beh, pos); break;
+    case 'whiteboard': doWhiteboard(world, entity, ch, beh, pos); break;
+    default: doWander(world, entity, beh, pos); break;
+  }
+}
+
+function navigateTo(world, entity, pos, tx, ty, nextState) {
+  const path = findPath(Math.round(pos.x), Math.round(pos.y), tx, ty, tilemap);
+  if (path.length) {
+    world.store('pathFollower').set(entity, {path, speed:2.5});
+    const beh = world.store('behavior').get(entity);
+    beh.current = 'walking';
+    beh.nextState = nextState;
+    return true;
+  }
+  return false;
+}
+
+function doWork(world, e, ch, beh, pos) {
+  const desk = world.store('deskAssignment').get(e);
+  if (desk) {
+    const dp = world.store('position').get(desk.deskEntity);
+    if (dp) navigateTo(world, e, pos, dp.x+desk.seatOffset.x, dp.y+desk.seatOffset.y, 'working');
+  }
+  beh.timer = 400 + rng.next() * 600;
+  addLog(`${ch.name} — ${rng.pick(ch.tasks)}`, 'action');
+}
+
+function doCoffee(world, e, ch, beh, pos) {
+  for (const f of world.query('interactable','position')) {
+    const app = world.store('appearance').get(f);
+    if (app?.spriteType === 'coffee_machine') {
+      const ip = world.store('interactable').get(f).interactionPoint;
+      if (ip && navigateTo(world, e, pos, ip.x, ip.y, 'coffee')) {
+        beh.timer = 80 + rng.next() * 80;
+        addLog(`${ch.name} grabs a coffee`, 'chat');
+        return;
+      }
+    }
+  }
+  beh.current = 'idle'; beh.timer = 60 + rng.next() * 100;
+}
+
+function doChat(world, e, ch, beh, pos) {
+  const others = world.query('behavior','position','identity').filter(o => o !== e);
+  if (!others.length) { beh.current='idle'; beh.timer=100; return; }
+  const target = rng.pick(others);
+  const tp = world.store('position').get(target);
+  const ti = world.store('identity').get(target);
+  const cx = Math.round(tp.x)+1, cy = Math.round(tp.y);
+  if (tilemap[cy]?.[cx]?.walkable && navigateTo(world, e, pos, cx, cy, 'chatting')) {
+    beh.timer = 120 + rng.next() * 200;
+    addLog(`${ch.name} chats with ${ti.name}`, 'chat');
+  } else {
+    beh.current = 'idle'; beh.timer = 80;
+  }
+}
+
+function doWhiteboard(world, e, ch, beh, pos) {
+  for (const f of world.query('interactable','position')) {
+    const app = world.store('appearance').get(f);
+    if (app?.spriteType === 'whiteboard') {
+      const ip = world.store('interactable').get(f).interactionPoint;
+      if (ip && navigateTo(world, e, pos, ip.x, ip.y, 'meeting')) {
+        beh.timer = 150 + rng.next() * 250;
+        addLog(`${ch.name} reviews strategy at whiteboard`, 'action');
+        return;
+      }
+    }
+  }
+  beh.current = 'idle'; beh.timer = 100;
+}
+
+function doWander(world, e, beh, pos) {
+  const tx = rng.int(2, MAP_W-3), ty = rng.int(2, MAP_H-3);
+  if (tilemap[ty]?.[tx]?.walkable) navigateTo(world, e, pos, tx, ty, 'idle');
+  beh.timer = 80 + rng.next() * 150;
+}
+
+// Register systems
+world.addSystem('behavior', behaviorSystem, 10);
+world.addSystem('movement', movementSystem, 20);
+
+// ================================================================
+//  RENDERER
+// ================================================================
+const S = 3, T = 16, TS = T*S;
+const PAL = {
+  bg:'#0b0c10',floor:'#1e2028',floorAlt:'#1c1d25',wall:'#2a2d3a',wallTop:'#353849',
+  rug:'#2a1f2e',desk:'#3d3224',deskTop:'#5a4a35',monitor:'#1a1c28',monGlow:'#3b82f6',
+  chair:'#2d2d3a',chairBack:'#35374a',plantLeaf:'#22c55e',plantDark:'#16a34a',plantPot:'#5a4a35',
+  coffee:'#78716c',coffeeBtn:'#ef4444',coffeeCup:'#e7e5e4',wbBoard:'#e8e5df',wbFrame:'#5a5d6e',
+  window:'#1e3a5f',windowGlow:'#60a5fa',doorFrame:'#5a4a35',doorInner:'#2a2520',doorKnob:'#5a4a35',
+  pants:'#374151',
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let camX = 0, camY = 0, now = 0;
+
+function resize() {
+  const dpr = devicePixelRatio || 1;
+  canvas.width = innerWidth * dpr;
+  canvas.height = innerHeight * dpr;
+  canvas.style.width = innerWidth + 'px';
+  canvas.style.height = innerHeight + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.imageSmoothingEnabled = false;
+}
+addEventListener('resize', resize);
+resize();
+
+function px(tx, ty, ox=0, oy=0) { return [camX+tx*TS+ox*S, camY+ty*TS+oy*S]; }
+function rect(tx, ty, ox, oy, w, h, c) {
+  const [x,y] = px(tx,ty,ox,oy);
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.floor(x), Math.floor(y), w*S, h*S);
+}
+
+function renderTiles() {
+  for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++) {
+    const t = tilemap[y][x];
+    if (t.type==='wall') {
+      rect(x,y,0,0,T,T,PAL.wall);
+      if (y>0 && tilemap[y-1][x].type!=='wall') rect(x,y,0,0,T,2,PAL.wallTop);
+    } else if (t.type==='rug') { rect(x,y,0,0,T,T,PAL.rug);
+    } else if (t.type==='door') {
+      rect(x,y,0,0,T,T,PAL.floor); rect(x,y,3,0,10,T,PAL.doorFrame);
+      rect(x,y,4,1,8,14,PAL.doorInner); rect(x,y,10,7,2,2,PAL.doorKnob);
+    } else { rect(x,y,0,0,T,T,t.variant?PAL.floorAlt:PAL.floor); }
+  }
+  // Windows
+  for (let x=2;x<MAP_W-2;x+=3) {
+    if (tilemap[0][x].type!=='wall') continue;
+    const p = Math.sin(now*.001+x)*.15+.85;
+    ctx.globalAlpha=p*.35; rect(x,0,3,4,10,8,PAL.windowGlow); ctx.globalAlpha=1;
+    rect(x,0,2,3,12,1,PAL.wbFrame); rect(x,0,2,13,12,1,PAL.wbFrame);
+    rect(x,0,2,3,1,11,PAL.wbFrame); rect(x,0,13,3,1,11,PAL.wbFrame); rect(x,0,7,3,1,11,PAL.wbFrame);
+    rect(x,0,3,4,4,9,PAL.window); rect(x,0,8,4,5,9,PAL.window);
+  }
+}
+
+function renderFurniture() {
+  const items = [];
+  for (const e of world.query('position','appearance','furnitureTag')) {
+    const p = world.store('position').get(e), a = world.store('appearance').get(e);
+    items.push({pos:p, app:a});
+  }
+  items.sort((a,b) => a.app.zIndex-b.app.zIndex || a.pos.y-b.pos.y);
+
+  for (const {pos:{x,y}, app} of items) {
+    switch (app.spriteType) {
+      case 'desk':
+        rect(x,y,1,4,14,10,PAL.desk); rect(x,y,2,3,12,2,PAL.deskTop);
+        rect(x,y,4,0,8,5,PAL.monitor);
+        const g = Math.sin(now*.002+x*3)*.3+.7;
+        ctx.globalAlpha=g; rect(x,y,5,1,6,3,PAL.monGlow); ctx.globalAlpha=1;
+        rect(x,y,7,5,2,1,PAL.monitor);
+        break;
+      case 'chair':
+        rect(x,y,4,4,8,8,PAL.chair); rect(x,y,3,2,10,4,PAL.chairBack);
+        break;
+      case 'plant':
+        const sw = Math.sin(now*.0015+x*2)*.8;
+        rect(x,y,5,9,6,5,PAL.plantPot);
+        const [px1,py1] = px(x,y,4+sw,2);
+        ctx.fillStyle=PAL.plantLeaf; ctx.fillRect(px1,py1,8*S,7*S);
+        const [px2,py2] = px(x,y,6+sw*.5,0);
+        ctx.fillStyle=PAL.plantDark; ctx.fillRect(px2,py2,4*S,5*S);
+        break;
+      case 'coffee_machine':
+        rect(x,y,3,2,10,12,PAL.coffee); rect(x,y,4,3,8,5,'#292524');
+        if (Math.sin(now*.003)>0) rect(x,y,10,4,2,2,PAL.coffeeBtn);
+        rect(x,y,5,10,4,3,PAL.coffeeCup);
+        break;
+      case 'whiteboard':
+        rect(x,y,1,2,14,10,PAL.wbFrame); rect(x,y,2,3,12,8,PAL.wbBoard);
+        rect(x,y,3,4,5,1,'#3b82f6'); rect(x,y,3,6,8,1,'#ef4444'); rect(x,y,3,8,6,1,'#22c55e');
+        break;
+    }
+  }
+}
+
+function renderPeople() {
+  const people = [];
+  for (const e of world.query('position','appearance','behavior')) {
+    people.push({ e, pos:world.store('position').get(e), app:world.store('appearance').get(e) });
+  }
+  people.sort((a,b) => a.pos.y-b.pos.y);
+
+  for (const {e, pos, app} of people) {
+    const beh = world.store('behavior').get(e);
+    const anim = world.store('animation').get(e);
+    const si = world.store('statusIndicator').get(e);
+    const x = pos.x, isWalk = beh?.current==='walking', isWork = beh?.current==='working';
+    const bobY = isWalk ? Math.sin((anim?.frame||0)*Math.PI)/S : isWork ? Math.sin(now*.003)*.1 : 0;
+    const y = pos.y + bobY;
+
+    ctx.globalAlpha=.2; rect(x,y,3,13,10,3,'#000'); ctx.globalAlpha=1;
+    rect(x,y,4,7,8,6,app.primaryColor); // body
+    rect(x,y,5,1,6,6,app.tertiaryColor); // head
+    rect(x,y,5,0,6,3,app.secondaryColor); // hair
+    if (Math.floor(now/3000)%20!==0) { rect(x,y,6,3,1,1,'#1c1917'); rect(x,y,9,3,1,1,'#1c1917'); } // eyes
+    const lo = isWalk?((anim?.frame||0)%2):0;
+    rect(x,y,5,13,3,3,PAL.pants); rect(x,y,8+lo,13,3,3,PAL.pants); // legs
+    rect(x,y,2,8,2,4,app.primaryColor); rect(x,y,12,8,2,4,app.primaryColor); // arms
+
+    if (si?.visible) {
+      const dp = si.pulse ? Math.sin(now*.005)*.3 : 0;
+      ctx.globalAlpha=.9+dp*.1; rect(x,y,7,-2+dp,2,2,si.color); ctx.globalAlpha=1;
+    }
+  }
+}
+
+function render() {
+  now = performance.now();
+  const viewH = innerHeight - 140;
+  camX = Math.floor((innerWidth - MAP_W*TS)/2);
+  camY = Math.floor((viewH - MAP_H*TS)/2);
+
+  ctx.fillStyle = PAL.bg;
+  ctx.fillRect(0, 0, innerWidth, innerHeight);
+
+  renderTiles();
+  renderFurniture();
+  renderPeople();
+}
+
+// ================================================================
+//  SIMULATION CLOCK
+// ================================================================
+const SIM = { speed:1, simMin:0, simDay:0 };
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const LOG = [];
+
+function addLog(msg, type='action') {
+  const h = Math.floor(SIM.simMin/60), m = SIM.simMin%60;
+  const time = `${String(9+h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  LOG.unshift({msg, type, time});
+  if (LOG.length > 50) LOG.pop();
+}
+
+function setSpeed(s) {
+  SIM.speed = s;
+  document.querySelectorAll('.spd-btn').forEach(b => b.classList.toggle('on', b.textContent === s+'x'));
+}
+
+addLog('— Monday begins —', 'event');
+addLog('Maya opens the office', 'action');
+addLog('Team arrives for the day', 'event');
+
+// ================================================================
+//  UI UPDATES
+// ================================================================
+function updateUI() {
+  const h = Math.floor(SIM.simMin/60), m = SIM.simMin%60;
+  document.getElementById('hud-time').textContent = `${String(9+h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  document.getElementById('hud-day').textContent = DAYS[SIM.simDay%5];
+
+  // Team panel
+  let teamHtml = '<div class="panel-title">Team</div>';
+  for (const e of world.query('identity','behavior','appearance')) {
+    const id = world.store('identity').get(e);
+    const beh = world.store('behavior').get(e);
+    const app = world.store('appearance').get(e);
+    teamHtml += `<div class="emp"><div class="emp-pip" style="background:${app.primaryColor}"></div><div>
+      <div class="emp-name">${id.name}</div><div class="emp-role">${id.role}</div>
+      <div class="emp-status s-${beh.current}">${beh.current}</div></div></div>`;
+  }
+  document.getElementById('team-panel').innerHTML = teamHtml;
+
+  // Info panel
+  const working = world.query('behavior').filter(e => world.store('behavior').get(e).current === 'working').length;
+  const total = world.query('identity').length;
+  document.getElementById('info-panel').innerHTML = `<div class="panel-title">Agency</div>
+    ${[['Team Size',total],['Working',working],['Day',DAYS[SIM.simDay%5]],
+       ['Time',document.getElementById('hud-time').textContent],['Speed',SIM.speed+'x']]
+      .map(([l,v])=>`<div class="info-row"><span class="info-label">${l}</span><span class="info-value">${v}</span></div>`).join('')}`;
+
+  // Log panel
+  let logHtml = '<div class="panel-title">Activity</div>';
+  LOG.slice(0,18).forEach(l => {
+    logHtml += `<div class="log-entry"><span class="log-time">${l.time}</span><span class="l-${l.type}">${l.msg}</span></div>`;
+  });
+  document.getElementById('log-panel').innerHTML = logHtml;
+}
+
+// ================================================================
+//  TOOLTIP
+// ================================================================
+const tooltip = document.getElementById('tooltip');
+canvas.addEventListener('mousemove', e => {
+  let found = null;
+  for (const ent of world.query('position','behavior','identity')) {
+    const p = world.store('position').get(ent);
+    const sx = camX + p.x*TS, sy = camY + p.y*TS;
+    if (e.clientX>=sx && e.clientX<=sx+TS && e.clientY>=sy && e.clientY<=sy+TS) { found = ent; break; }
+  }
+  if (found) {
+    const id = world.store('identity').get(found);
+    const beh = world.store('behavior').get(found);
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX+12)+'px';
+    tooltip.style.top = (e.clientY-10)+'px';
+    tooltip.querySelector('.tt-name').textContent = id.name;
+    tooltip.querySelector('.tt-role').textContent = id.role;
+    const st = tooltip.querySelector('.tt-state');
+    st.textContent = beh.current;
+    st.className = 'tt-state s-'+beh.current;
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+canvas.addEventListener('mouseleave', () => tooltip.style.display='none');
+
+// ================================================================
+//  GAME LOOP
+// ================================================================
+let lastTime = 0, clockAccum = 0, uiAccum = 0;
+
+function loop(time) {
+  const dt = lastTime ? Math.min(time - lastTime, 100) : 16;
+  lastTime = time;
+
+  if (SIM.speed > 0) {
+    world.tick(dt * SIM.speed);
+
+    // Advance sim clock: 1 sim-minute per 500ms at 1x
+    clockAccum += dt * SIM.speed;
+    while (clockAccum >= 500) {
+      clockAccum -= 500;
+      SIM.simMin++;
+      if (SIM.simMin >= 480) { SIM.simMin = 0; SIM.simDay++; addLog(`— ${DAYS[SIM.simDay%5]} begins —`, 'event'); }
+    }
+  }
+
+  render();
+
+  // Throttle UI updates to ~5fps
+  uiAccum += dt;
+  if (uiAccum > 200) { uiAccum = 0; updateUI(); }
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
