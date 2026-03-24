@@ -6,11 +6,19 @@ export function OfficeCanvas({ gameState }: { gameState: GameState }) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    console.log('🎨 OfficeCanvas rendering, canvas:', canvas);
+    if (!canvas) {
+      console.error('🎨 Canvas ref is null!');
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('🎨 Failed to get 2D context');
+      return;
+    }
 
+    console.log('🎨 Canvas context ready, drawing office...');
     ctx.imageSmoothingEnabled = false;
 
     // Clear
