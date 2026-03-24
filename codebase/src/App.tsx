@@ -9,7 +9,6 @@ import { DecisionDialog } from '@/ui/overlays/DecisionDialog';
 import { TeamPanel } from '@/ui/panels/TeamPanel';
 import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
-import { GameOverScreen } from '@/ui/overlays/GameOverScreen';
 
 export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
@@ -31,11 +30,6 @@ export default function App() {
       // Listen to state changes
       const unsubscribe = engine.onStateChange((state) => {
         setGameState(state);
-      });
-
-      // Listen to game over
-      engine.onGameOver((reason) => {
-        console.log('Game Over:', reason);
       });
 
       return unsubscribe;
@@ -143,11 +137,6 @@ export default function App() {
           decision={gameState.pendingDecisions[0]}
           onChoose={handleDecision}
         />
-      )}
-
-      {/* Game over screen (if ended) */}
-      {gameState.isGameOver && (
-        <GameOverScreen reason={gameState.gameOverReason || 'Game Over'} />
       )}
     </div>
   );

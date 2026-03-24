@@ -124,8 +124,6 @@ export interface GameState {
 
   // Metadata
   isPaused: boolean;
-  isGameOver: boolean;
-  gameOverReason?: string;
 }
 
 // --- Commands (frontend sends to engine) ---
@@ -157,7 +155,6 @@ export interface GameEngine {
 
   // Events
   onStateChange(callback: (state: GameState) => void): () => void;
-  onGameOver(callback: (reason: string) => void): () => void;
 }
 
 // --- Context (engine uses this to understand the game) ---

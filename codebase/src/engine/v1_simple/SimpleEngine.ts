@@ -28,7 +28,6 @@ import type {
 export class SimpleEngine implements GameEngine {
   private state!: GameState;
   private stateListeners = new Set<(state: GameState) => void>();
-  private gameOverListeners = new Set<(reason: string) => void>();
   private decisionCounter = 0;
 
   async init() {
@@ -138,7 +137,6 @@ export class SimpleEngine implements GameEngine {
       ],
 
       isPaused: false,
-      isGameOver: false,
     };
 
     // Generate first decision
@@ -222,14 +220,6 @@ export class SimpleEngine implements GameEngine {
       );
     }
 
-    // Game over if bankrupt
-    if (this.state.financials.cashOnHand < 0) {
-      this.state.isGameOver = true;
-      this.state.gameOverReason = 'Ran out of cash. Game over.';
-      this.gameOverListeners.forEach((cb) => cb(this.state.gameOverReason!));
-      return;
-    }
-
     // Every 50 ticks, maybe generate a decision
     if (
       this.state.currentTick % 50 === 0 &&
@@ -310,14 +300,8 @@ export class SimpleEngine implements GameEngine {
     return () => this.stateListeners.delete(callback);
   }
 
-  onGameOver(callback: (reason: string) => void): () => void {
-    this.gameOverListeners.add(callback);
-    return () => this.gameOverListeners.delete(callback);
-  }
-
   async destroy() {
     this.stateListeners.clear();
-    this.gameOverListeners.clear();
   }
 
   // --- Private methods ---
