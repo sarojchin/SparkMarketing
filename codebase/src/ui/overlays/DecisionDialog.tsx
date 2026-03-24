@@ -18,8 +18,8 @@ export function DecisionDialog({ decision, onChoose }: DecisionDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-sim-surface border-2 border-sim-green rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl relative">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 pointer-events-none">
+      <div className="bg-sim-surface border-2 border-sim-green rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl relative pointer-events-auto">
         {/* Close button */}
         <button
           onClick={() => {
