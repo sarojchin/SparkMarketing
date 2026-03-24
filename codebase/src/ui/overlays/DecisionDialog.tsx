@@ -3,25 +3,32 @@ import type { Decision } from '@/engine/types';
 interface DecisionDialogProps {
   decision: Decision;
   onChoose: (decisionId: string, optionId: string) => void;
-  onClose: () => void;
 }
 
-export function DecisionDialog({ decision, onChoose, onClose }: DecisionDialogProps) {
+export function DecisionDialog({ decision, onChoose }: DecisionDialogProps) {
+  const handleOptionClick = (optionId: string) => {
+    console.log('Option clicked:', { decisionId: decision.id, optionId });
+    onChoose(decision.id, optionId);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-sim-surface border-2 border-sim-green rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
-        {/* Header with close button */}
-        <div className="flex items-start justify-between mb-3">
-          <h2 className="text-lg font-pixel text-sim-green tracking-wide">
-            {decision.title}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-sim-textDim hover:text-sim-green transition-colors font-pixel text-lg leading-none"
-          >
-            ✕
-          </button>
-        </div>
+      <div className="bg-sim-surface border-2 border-sim-green rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl relative">
+        {/* Close button */}
+        <button
+          onClick={() => {
+            console.log('Dialog dismissed');
+          }}
+          className="absolute top-2 right-2 text-sim-textDim hover:text-sim-green transition-colors text-lg w-6 h-6 flex items-center justify-center"
+          title="Dismiss (no action)"
+        >
+          ✕
+        </button>
+
+        {/* Title */}
+        <h2 className="text-lg font-pixel text-sim-green mb-2 tracking-wide pr-6">
+          {decision.title}
+        </h2>
 
         {/* Description */}
         <p className="text-sm font-pixel text-sim-text mb-6 leading-relaxed">
@@ -33,8 +40,9 @@ export function DecisionDialog({ decision, onChoose, onClose }: DecisionDialogPr
           {decision.options.map((option) => (
             <button
               key={option.id}
-              onClick={() => onChoose(decision.id, option.id)}
-              className="w-full text-left p-3 border border-sim-border hover:border-sim-green hover:bg-sim-bg transition-colors rounded"
+              onClick={() => handleOptionClick(option.id)}
+              className="w-full text-left p-3 border border-sim-border hover:border-sim-green hover:bg-sim-bg transition-colors rounded cursor-pointer active:bg-sim-border"
+              type="button"
             >
               <div className="font-pixel text-sim-green text-sm">
                 → {option.label}
@@ -52,13 +60,11 @@ export function DecisionDialog({ decision, onChoose, onClose }: DecisionDialogPr
         </div>
 
         {/* Footer */}
-        <div className="mt-4 text-xs font-pixel text-sim-textDim text-center border-t border-sim-border pt-3">
-          {decision.deadline ? (
-            <span>Deadline: Month {decision.deadline.month}, Day {decision.deadline.day}</span>
-          ) : (
-            <span>Close to dismiss, or click an option to decide</span>
-          )}
-        </div>
+        {decision.deadline && (
+          <div className="mt-4 text-xs font-pixel text-sim-textDim text-center border-t border-sim-border pt-3">
+            Deadline: Month {decision.deadline.month}, Day {decision.deadline.day}
+          </div>
+        )}
       </div>
     </div>
   );
