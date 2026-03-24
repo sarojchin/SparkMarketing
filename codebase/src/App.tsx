@@ -146,13 +146,17 @@ export default function App() {
       </div>
 
       {/* Decision dialog (if pending and visible) */}
-      {showDecisionDialog && gameState.pendingDecisions.length > 0 && (
-        <DecisionDialog
-          decision={gameState.pendingDecisions[0]}
-          onChoose={handleDecision}
-          onClose={handleDismissDecision}
-        />
-      )}
+      {(() => {
+        const shouldShow = showDecisionDialog && gameState.pendingDecisions.length > 0;
+        console.log('🎮 Dialog render check:', { showDecisionDialog, pendingCount: gameState.pendingDecisions.length, shouldShow });
+        return shouldShow ? (
+          <DecisionDialog
+            decision={gameState.pendingDecisions[0]}
+            onChoose={handleDecision}
+            onClose={handleDismissDecision}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }

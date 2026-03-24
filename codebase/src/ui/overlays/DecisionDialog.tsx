@@ -3,9 +3,12 @@ import type { Decision } from '@/engine/types';
 interface DecisionDialogProps {
   decision: Decision;
   onChoose: (decisionId: string, optionId: string) => void;
+  onClose?: () => void;
 }
 
-export function DecisionDialog({ decision, onChoose }: DecisionDialogProps) {
+export function DecisionDialog({ decision, onChoose, onClose }: DecisionDialogProps) {
+  console.log('📋 DecisionDialog rendered with decision:', decision.id);
+
   const handleOptionClick = (optionId: string) => {
     console.warn('🎯 OPTION CLICKED:', { decisionId: decision.id, optionId });
     console.warn('🎯 Calling onChoose...');
@@ -24,6 +27,7 @@ export function DecisionDialog({ decision, onChoose }: DecisionDialogProps) {
         <button
           onClick={() => {
             console.log('Dialog dismissed');
+            onClose?.();
           }}
           className="absolute top-2 right-2 text-sim-textDim hover:text-sim-green transition-colors text-lg w-6 h-6 flex items-center justify-center"
           title="Dismiss (no action)"
