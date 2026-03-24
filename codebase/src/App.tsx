@@ -6,6 +6,7 @@ import { useSimStore } from '@/hooks/useSimStore';
 import { HUD } from '@/ui/overlays/HUD';
 import { Tooltip } from '@/ui/overlays/Tooltip';
 import { DecisionDialog } from '@/ui/overlays/DecisionDialog';
+import { OfficeCanvas } from '@/ui/canvas/OfficeCanvas';
 import { TeamPanel } from '@/ui/panels/TeamPanel';
 import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
@@ -124,10 +125,8 @@ export default function App() {
     <div className="h-screen w-screen overflow-hidden bg-sim-bg flex flex-col">
       {/* Main game area */}
       <div className="flex-1 relative">
-        {/* Placeholder for canvas/visuals */}
-        <div className="absolute inset-0 bg-sim-bg flex items-center justify-center text-sim-textDim font-pixel text-sm">
-          Visual rendering (canvas) coming next
-        </div>
+        {/* Office canvas */}
+        <OfficeCanvas gameState={gameState} />
 
         {/* HUD overlay */}
         <HUDWithState gameState={gameState} onSpeedChange={handleSpeedChange} />
