@@ -25,10 +25,21 @@ import type {
   LogEntry,
 } from '../types';
 
+// Client entity with extended properties
+interface ClientEntity {
+  id: string;
+  name: string;
+  satisfaction: number;
+  daysSinceClienthood: number; // track how long they've been a client
+}
+
 export class SimpleEngine implements GameEngine {
   private state!: GameState;
   private stateListeners = new Set<(state: GameState) => void>();
   private decisionCounter = 0;
+  private clientEntities = new Map<string, ClientEntity>();
+  private lastDecisionTime = 0;
+  private decisionIntervalMs = 120000; // 2 minutes of game time (at 1x speed)
 
   async init() {
     this.state = {
@@ -139,6 +150,16 @@ export class SimpleEngine implements GameEngine {
       isPaused: false,
     };
 
+    // Initialize client entities
+    for (const client of this.state.clients) {
+      this.clientEntities.set(client.id, {
+        id: client.id,
+        name: client.name,
+        satisfaction: client.satisfaction,
+        daysSinceClienthood: 0,
+      });
+    }
+
     // Generate first decision
     this.generateRandomDecision();
   }
@@ -220,11 +241,26 @@ export class SimpleEngine implements GameEngine {
       );
     }
 
-    // Every 50 ticks, maybe generate a decision
+    // Tick client entities (increment time since clienthood)
+    for (const entity of this.clientEntities.values()) {
+      entity.daysSinceClienthood += 1;
+    }
+
+    // Sync client entities back to state
+    for (const client of this.state.clients) {
+      const entity = this.clientEntities.get(client.id);
+      if (entity) {
+        client.satisfaction = entity.satisfaction;
+      }
+    }
+
+    // Generate decisions every 2 minutes of game time (120 seconds at 1x speed)
+    const currentTimeMs = this.state.currentTick;
     if (
-      this.state.currentTick % 50 === 0 &&
+      currentTimeMs - this.lastDecisionTime >= this.decisionIntervalMs &&
       this.state.pendingDecisions.length === 0
     ) {
+      this.lastDecisionTime = currentTimeMs;
       this.generateRandomDecision();
     }
 
@@ -445,6 +481,7 @@ export class SimpleEngine implements GameEngine {
     this.state.pendingDecisions.push({
       id: `decision-${++this.decisionCounter}`,
       type: 'crisis',
+      clientId: client.id,
       title: `${client.name} is unhappy`,
       description: `Satisfaction dropped to ${Math.round(client.satisfaction)}. They're threatening to leave.`,
       options: [
@@ -524,26 +561,27 @@ export class SimpleEngine implements GameEngine {
       }
     }
 
-    // Crisis
-    if (decision.type === 'crisis') {
-      const client = this.state.clients.find(
-        (c) => c.name.includes(decision.title.split(' ')[0])
-      );
+    // Crisis - use clientId from decision
+    if (decision.type === 'crisis' && decision.clientId) {
+      const clientEntity = this.clientEntities.get(decision.clientId);
+      const clientSnapshot = this.state.clients.find((c) => c.id === decision.clientId);
 
-      if (option.id === 'appease' && client) {
-        client.satisfaction = Math.min(100, client.satisfaction + 30);
+      if (!clientEntity || !clientSnapshot) return;
+
+      if (option.id === 'appease') {
+        clientEntity.satisfaction = Math.min(100, clientEntity.satisfaction + 30);
+        clientSnapshot.satisfaction = clientEntity.satisfaction;
         this.state.financials.cashOnHand -= 3000;
-        this.addLog(`Appeased ${client.name}. Satisfaction restored.`, 'success');
-      } else if (option.id === 'communicate' && client) {
-        client.satisfaction = Math.min(100, client.satisfaction + 10);
-        this.addLog(`Had a good call with ${client.name}.`, 'success');
-      } else {
-        if (client) {
-          this.state.contracts = this.state.contracts.filter(
-            (c) => c.clientId !== client.id
-          );
-          this.addLog(`Lost contract with ${client.name}.`, 'error');
-        }
+        this.addLog(`Appeased ${clientSnapshot.name}. Satisfaction +30.`, 'success');
+      } else if (option.id === 'communicate') {
+        clientEntity.satisfaction = Math.min(100, clientEntity.satisfaction + 10);
+        clientSnapshot.satisfaction = clientEntity.satisfaction;
+        this.addLog(`Had a good call with ${clientSnapshot.name}. Satisfaction +10.`, 'success');
+      } else if (option.id === 'let_go') {
+        this.state.contracts = this.state.contracts.filter(
+          (c) => c.clientId !== decision.clientId
+        );
+        this.addLog(`Lost contract with ${clientSnapshot.name}.`, 'error');
       }
     }
   }

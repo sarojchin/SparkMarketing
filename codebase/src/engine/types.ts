@@ -85,6 +85,8 @@ export interface Decision {
   description: string;
   options: DecisionOption[];
   deadline?: GameDate;
+  clientId?: string; // which client this decision is about (if applicable)
+  contractId?: string; // which contract (if applicable)
   metadata?: Record<string, any>; // engine-specific data
 }
 

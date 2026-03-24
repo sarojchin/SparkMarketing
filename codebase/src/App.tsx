@@ -14,6 +14,7 @@ export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [showDecisionDialog, setShowDecisionDialog] = useState(false);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
 
@@ -25,11 +26,19 @@ export default function App() {
       engineRef.current = engine;
 
       // Set initial state
-      setGameState(engine.getState());
+      const initialState = engine.getState();
+      setGameState(initialState);
+      if (initialState.pendingDecisions.length > 0) {
+        setShowDecisionDialog(true);
+      }
 
       // Listen to state changes
       const unsubscribe = engine.onStateChange((state) => {
         setGameState(state);
+        // Show dialog if a new decision appeared
+        if (state.pendingDecisions.length > 0) {
+          setShowDecisionDialog(true);
+        }
       });
 
       return unsubscribe;
@@ -76,13 +85,18 @@ export default function App() {
   }, []);
 
   // --- Handle decisions ---
-  const handleDecision = useCallback((decisionId: string, optionId: string) => {
+  const handleDecision = useCallback(async (decisionId: string, optionId: string) => {
     if (!engineRef.current) return;
-    engineRef.current.executeCommand({
+    await engineRef.current.executeCommand({
       type: 'decision_made',
       decisionId,
       optionId,
     });
+    setShowDecisionDialog(false);
+  }, []);
+
+  const handleDismissDecision = useCallback(() => {
+    setShowDecisionDialog(false);
   }, []);
 
   // --- Handle speed change ---
@@ -131,11 +145,12 @@ export default function App() {
         </div>
       </div>
 
-      {/* Decision dialog (if pending) */}
-      {gameState.pendingDecisions.length > 0 && (
+      {/* Decision dialog (if pending and visible) */}
+      {showDecisionDialog && gameState.pendingDecisions.length > 0 && (
         <DecisionDialog
           decision={gameState.pendingDecisions[0]}
           onChoose={handleDecision}
+          onClose={handleDismissDecision}
         />
       )}
     </div>
