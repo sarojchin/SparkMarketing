@@ -7,8 +7,14 @@ interface DecisionDialogProps {
 
 export function DecisionDialog({ decision, onChoose }: DecisionDialogProps) {
   const handleOptionClick = (optionId: string) => {
-    console.log('Option clicked:', { decisionId: decision.id, optionId });
-    onChoose(decision.id, optionId);
+    console.warn('🎯 OPTION CLICKED:', { decisionId: decision.id, optionId });
+    console.warn('🎯 Calling onChoose...');
+    try {
+      onChoose(decision.id, optionId);
+      console.warn('✅ onChoose called successfully');
+    } catch (error) {
+      console.error('❌ Error calling onChoose:', error);
+    }
   };
 
   return (
@@ -40,7 +46,14 @@ export function DecisionDialog({ decision, onChoose }: DecisionDialogProps) {
           {decision.options.map((option) => (
             <button
               key={option.id}
-              onClick={() => handleOptionClick(option.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleOptionClick(option.id);
+              }}
+              onMouseDown={(e) => {
+                console.warn('🖱️ MOUSE DOWN on:', option.id);
+              }}
               className="w-full text-left p-3 border border-sim-border hover:border-sim-green hover:bg-sim-bg transition-colors rounded cursor-pointer active:bg-sim-border"
               type="button"
             >
