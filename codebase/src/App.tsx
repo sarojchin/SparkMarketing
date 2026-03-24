@@ -27,8 +27,10 @@ export default function App() {
 
       // Set initial state
       const initialState = engine.getState();
+      console.log('📱 App: Initial state loaded. Pending decisions:', initialState.pendingDecisions.length);
       setGameState(initialState);
       if (initialState.pendingDecisions.length > 0) {
+        console.log('📱 App: Setting showDecisionDialog to true');
         setShowDecisionDialog(true);
       }
 

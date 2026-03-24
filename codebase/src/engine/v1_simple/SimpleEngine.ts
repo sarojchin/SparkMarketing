@@ -42,6 +42,7 @@ export class SimpleEngine implements GameEngine {
   private decisionIntervalMs = 120000; // 2 minutes of game time (at 1x speed)
 
   async init() {
+    console.log('🎮 Engine initializing...');
     this.state = {
       currentTick: 0,
       gameDate: { year: 1, month: 1, day: 1 },
@@ -161,7 +162,9 @@ export class SimpleEngine implements GameEngine {
     }
 
     // Generate first decision
+    console.log('🎮 Generating first decision...');
     this.generateRandomDecision();
+    console.log('🎮 Engine init complete. Pending decisions:', this.state.pendingDecisions.length);
   }
 
   async tick(dt: number) {
@@ -344,14 +347,20 @@ export class SimpleEngine implements GameEngine {
 
   private generateRandomDecision() {
     const roll = Math.random();
+    console.log('🎮 generateRandomDecision roll:', roll);
 
     if (roll < 0.4) {
+      console.log('🎮 Creating contract offer decision');
       this.createContractOfferDecision();
     } else if (roll < 0.7) {
+      console.log('🎮 Creating strategy decision');
       this.createStrategyDecision();
     } else {
+      console.log('🎮 Creating client crisis decision');
       this.createClientCrisisDecision();
     }
+
+    console.log('🎮 Decision created. Pending count:', this.state.pendingDecisions.length);
   }
 
   private createContractOfferDecision() {
