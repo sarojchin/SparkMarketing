@@ -1,2 +1,5 @@
 export { movementSystem } from './movement';
-export { behaviorSystem, registerBehaviorWeights } from './behavior';
+export { behaviorSystem, workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler } from './behavior';
+export { clockSystem } from './clock';
+export { snapshotSystem } from './snapshot';
+export { setupLogBridge } from './log-bridge';

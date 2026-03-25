@@ -1,12 +1,19 @@
 /**
  * Entity Component System — core engine
- * 
+ *
  * Entities: just numeric IDs
  * Components: plain typed data objects, stored in Maps keyed by entity ID
  * Systems: functions that query entities by component signature and process them
- * 
+ * Resources: typed singletons for global state (clock, tilemap, config)
+ * Events: typed event bus for decoupled cross-system communication
+ *
  * This pattern lets us add new behaviors (processes, AI, animation)
  * without touching existing code — just add components and systems.
+ *
+ * Scaling notes (each is a modular swap, no system changes needed):
+ * - ComponentStore internals can be replaced with archetype-based storage
+ * - query() can be backed by a bitmask index
+ * - Resources can be extended with change-detection wrappers
  */
 
 export type EntityId = number;
@@ -61,29 +68,52 @@ export interface System {
   enabled: boolean;
 }
 
+// --- Typed Event Definitions ---
+
+export interface WorldEvents {
+  'log': { message: string; type: 'action' | 'event' | 'chat' | 'system' };
+  'entity:spawned': { entity: EntityId };
+  'entity:despawned': { entity: EntityId };
+  'behavior:changed': { entity: EntityId; from: string; to: string };
+}
+
+export type EventKey = keyof WorldEvents;
+
+// --- Resource Key ---
+// Typed resource keys ensure type-safe access to world resources.
+// To add a new resource: add an entry to ResourceMap and call world.setResource().
+
+export class ResourceKey<T> {
+  constructor(public readonly id: string) {}
+}
+
 export class World {
   private nextEntityId: EntityId = 1;
   private entities = new Set<EntityId>();
   private systems: System[] = [];
   private componentStores = new Map<string, ComponentStore<any>>();
 
-  // Event bus for decoupled communication
-  private listeners = new Map<string, Set<(payload: any) => void>>();
+  // Typed resource storage — singletons accessed by ResourceKey<T>
+  private resources = new Map<string, unknown>();
+
+  // Typed event bus — keyed by WorldEvents interface
+  private typedListeners = new Map<string, Set<(payload: any) => void>>();
 
   // --- Entity management ---
 
   spawn(): EntityId {
     const id = this.nextEntityId++;
     this.entities.add(id);
+    this.emit('entity:spawned', { entity: id });
     return id;
   }
 
   despawn(entity: EntityId): void {
     this.entities.delete(entity);
-    // Remove all components
     for (const store of this.componentStores.values()) {
       store.delete(entity);
     }
+    this.emit('entity:despawned', { entity });
   }
 
   exists(entity: EntityId): boolean {
@@ -137,6 +167,24 @@ export class World {
     return result;
   }
 
+  // --- Resource management (typed singletons) ---
+
+  setResource<T>(key: ResourceKey<T>, value: T): void {
+    this.resources.set(key.id, value);
+  }
+
+  getResource<T>(key: ResourceKey<T>): T {
+    const value = this.resources.get(key.id);
+    if (value === undefined) {
+      throw new Error(`Resource "${key.id}" not found. Register it with world.setResource() before use.`);
+    }
+    return value as T;
+  }
+
+  hasResource<T>(key: ResourceKey<T>): boolean {
+    return this.resources.has(key.id);
+  }
+
   // --- System management ---
 
   addSystem(id: string, fn: SystemFn, priority = 0): void {
@@ -161,17 +209,17 @@ export class World {
     }
   }
 
-  // --- Event bus ---
+  // --- Typed event bus ---
 
-  on(event: string, handler: (payload: any) => void): () => void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
+  on<K extends EventKey>(event: K, handler: (payload: WorldEvents[K]) => void): () => void {
+    if (!this.typedListeners.has(event)) {
+      this.typedListeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(handler);
-    return () => this.listeners.get(event)?.delete(handler);
+    this.typedListeners.get(event)!.add(handler);
+    return () => this.typedListeners.get(event)?.delete(handler);
   }
 
-  emit(event: string, payload?: any): void {
-    this.listeners.get(event)?.forEach(fn => fn(payload));
+  emit<K extends EventKey>(event: K, payload: WorldEvents[K]): void {
+    this.typedListeners.get(event)?.forEach(fn => fn(payload));
   }
 }

@@ -114,6 +114,12 @@ export interface DeskAssignment {
   seatOffset: { x: number; y: number }; // where to sit relative to desk
 }
 
+// --- AI ---
+
+export interface BehaviorWeights {
+  weights: Record<string, number>; // behavior name -> probability weight
+}
+
 // --- Furniture ---
 
 export interface Interactable {
@@ -151,4 +157,5 @@ export const COMPONENTS = {
   DESK_ASSIGNMENT: 'deskAssignment',
   INTERACTABLE: 'interactable',
   FURNITURE_TAG: 'furnitureTag',
+  BEHAVIOR_WEIGHTS: 'behaviorWeights',
 } as const;

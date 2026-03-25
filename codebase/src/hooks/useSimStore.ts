@@ -62,6 +62,7 @@ interface SimState {
   setSelectedEntity: (entity: EntityId | null) => void;
   setHoveredEntity: (entity: EntityId | null) => void;
   advanceTime: (dt: number) => void;
+  syncClock: (tick: number, simMinutes: number, simDay: number, speed: number) => void;
   addLog: (message: string, type: LogEntry['type']) => void;
 }
 
@@ -97,6 +98,8 @@ export const useSimStore = create<SimState>((set, get) => ({
   setSelectedEntity: (entity) => set({ selectedEntity: entity }),
 
   setHoveredEntity: (entity) => set({ hoveredEntity: entity }),
+
+  syncClock: (tick, simMinutes, simDay, speed) => set({ tick, simMinutes, simDay, speed }),
 
   advanceTime: (dt) => {
     const state = get();

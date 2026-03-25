@@ -1,30 +1,29 @@
 /**
  * Behavior System
- * 
+ *
  * Each tick, checks entities with BehaviorState.
  * When their state timer expires, picks a new behavior
- * based on their personality weights and current context.
- * 
- * To add new behaviors: add a case to the decision function
- * and a handler that sets up the path/state/metadata.
+ * based on their BehaviorWeights component and dispatches
+ * to the registered handler via the behavior registry.
+ *
+ * This system has ZERO imports from React/Zustand.
+ * It communicates outward via world.emit('log', ...).
+ *
+ * To add new behaviors: register a handler in the behavior registry
+ * and add weights to character definitions.
  */
 
 import type { World, EntityId } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
 import type {
-  Position, BehaviorState, PathFollower, StatusIndicator,
-  Identity, Interactable, FurnitureTag, DeskAssignment,
+  Position, Appearance, BehaviorState, PathFollower, StatusIndicator,
+  Identity, Interactable, DeskAssignment, BehaviorWeights,
 } from '@/simulation/components';
+import { SIM_CLOCK, TILEMAP } from '@/simulation/resources';
 import { findPath } from '@/utils/pathfinding';
 import { rng } from '@/utils/rng';
-import { useSimStore } from '@/hooks/useSimStore';
-
-// Behavior weights per character (loaded from character data)
-const behaviorWeights = new Map<EntityId, Record<string, number>>();
-
-export function registerBehaviorWeights(entity: EntityId, weights: Record<string, number>) {
-  behaviorWeights.set(entity, weights);
-}
+import { behaviorRegistry } from '@/simulation/registries/behaviors';
+import type { BehaviorContext } from '@/simulation/registries/behaviors';
 
 // Activity log messages by behavior
 const WORK_TASKS: Record<string, string[]> = {
@@ -34,17 +33,20 @@ const WORK_TASKS: Record<string, string[]> = {
   'Designer': ['designing banner ads', 'updating brand assets', 'creating social graphics', 'revising landing page'],
 };
 
+const DEFAULT_WEIGHTS: Record<string, number> = {
+  work: 0.5, coffee: 0.15, wander: 0.15, chat: 0.15, whiteboard: 0.05,
+};
+
 export function behaviorSystem(world: World, dt: number): void {
+  const clock = world.getResource(SIM_CLOCK);
+  if (clock.speed === 0) return;
+
   const behaviors = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR);
   const positions = world.getStore<Position>(COMPONENTS.POSITION);
   const identities = world.getStore<Identity>(COMPONENTS.IDENTITY);
   const paths = world.getStore<PathFollower>(COMPONENTS.PATH_FOLLOWER);
   const statusIndicators = world.getStore<StatusIndicator>(COMPONENTS.STATUS_INDICATOR);
-  const deskAssignments = world.getStore<DeskAssignment>(COMPONENTS.DESK_ASSIGNMENT);
-
-  const simStore = useSimStore.getState();
-  const speed = simStore.speed;
-  if (speed === 0) return;
+  const weightsStore = world.getStore<BehaviorWeights>(COMPONENTS.BEHAVIOR_WEIGHTS);
 
   const entities = world.query(COMPONENTS.BEHAVIOR, COMPONENTS.POSITION, COMPONENTS.IDENTITY);
 
@@ -57,11 +59,37 @@ export function behaviorSystem(world: World, dt: number): void {
     if (paths.has(entity) && paths.get(entity)!.path.length > 0) continue;
 
     // Tick down state timer
-    beh.timer -= dt * speed * 0.06;
+    beh.timer -= dt * clock.speed * 0.06;
 
     if (beh.timer <= 0) {
-      // Decide next behavior
-      decideBehavior(world, entity, beh, pos, id);
+      // Get weights from component (falls back to defaults)
+      const weightsComp = weightsStore.get(entity);
+      const weights = weightsComp?.weights || DEFAULT_WEIGHTS;
+
+      // Weighted random selection
+      const roll = rng.next();
+      let cumulative = 0;
+      let chosen = 'work';
+
+      for (const [behavior, weight] of Object.entries(weights)) {
+        cumulative += weight;
+        if (roll < cumulative) {
+          chosen = behavior;
+          break;
+        }
+      }
+
+      // Dispatch to registered handler
+      const handler = behaviorRegistry.get(chosen);
+      if (handler) {
+        const tilemap = world.getResource(TILEMAP);
+        const ctx: BehaviorContext = { world, entity, position: pos, identity: id, tilemap };
+        handler(ctx);
+      } else {
+        // Fallback: idle
+        beh.current = 'idle';
+        beh.timer = 60 + rng.next() * 100;
+      }
     }
 
     // Update status indicator
@@ -82,61 +110,19 @@ export function behaviorSystem(world: World, dt: number): void {
   }
 }
 
-function decideBehavior(
-  world: World,
-  entity: EntityId,
-  beh: BehaviorState,
-  pos: Position,
-  identity: Identity,
-) {
-  const weights = behaviorWeights.get(entity) || {
-    work: 0.5, coffee: 0.15, wander: 0.15, chat: 0.15, whiteboard: 0.05,
-  };
+// --- Built-in behavior handlers ---
+// These are registered in factory.ts via behaviorRegistry.register()
 
-  const roll = rng.next();
-  let cumulative = 0;
-  let chosen = 'work';
-
-  for (const [behavior, weight] of Object.entries(weights)) {
-    cumulative += weight;
-    if (roll < cumulative) {
-      chosen = behavior;
-      break;
-    }
-  }
-
-  const simStore = useSimStore.getState();
-  const tilemap = simStore.tilemap;
-  if (!tilemap) return;
-
-  switch (chosen) {
-    case 'work':
-      goToWork(world, entity, beh, pos, identity, tilemap);
-      break;
-    case 'coffee':
-      goToCoffee(world, entity, beh, pos, identity, tilemap);
-      break;
-    case 'chat':
-      goChat(world, entity, beh, pos, identity, tilemap);
-      break;
-    case 'whiteboard':
-      goWhiteboard(world, entity, beh, pos, identity, tilemap);
-      break;
-    case 'wander':
-    default:
-      goWander(world, entity, beh, pos, identity, tilemap);
-      break;
-  }
-}
-
-function goToWork(world: World, entity: EntityId, beh: BehaviorState, pos: Position, id: Identity, tilemap: any) {
+export function workHandler(ctx: BehaviorContext): void {
+  const { world, entity, position: pos, identity: id, tilemap } = ctx;
+  const beh = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR).get(entity)!;
   const desk = world.getStore<DeskAssignment>(COMPONENTS.DESK_ASSIGNMENT).get(entity);
 
   if (desk) {
     const deskPos = world.getStore<Position>(COMPONENTS.POSITION).get(desk.deskEntity);
     if (deskPos) {
       const target = { x: deskPos.x + desk.seatOffset.x, y: deskPos.y + desk.seatOffset.y };
-      navigateTo(world, entity, pos, target.x, target.y, tilemap, 'working');
+      navigateTo(world, entity, pos, target.x, target.y, tilemap.tiles, 'working');
     }
   }
 
@@ -144,23 +130,22 @@ function goToWork(world: World, entity: EntityId, beh: BehaviorState, pos: Posit
 
   const tasks = WORK_TASKS[id.role] || ['working'];
   const task = rng.pick(tasks);
-  useSimStore.getState().addLog(`${id.name} — ${task}`, 'action');
+  world.emit('log', { message: `${id.name} — ${task}`, type: 'action' });
 }
 
-function goToCoffee(world: World, entity: EntityId, beh: BehaviorState, pos: Position, id: Identity, tilemap: any) {
-  // Find coffee machine furniture entity
+export function coffeeHandler(ctx: BehaviorContext): void {
+  const { world, entity, position: pos, identity: id, tilemap } = ctx;
+  const beh = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR).get(entity)!;
   const interactables = world.getStore<Interactable>(COMPONENTS.INTERACTABLE);
-  const furnitureTags = world.getStore<FurnitureTag>(COMPONENTS.FURNITURE_TAG);
-  const positions = world.getStore<Position>(COMPONENTS.POSITION);
 
   for (const fEntity of world.query(COMPONENTS.INTERACTABLE, COMPONENTS.FURNITURE_TAG, COMPONENTS.POSITION)) {
-    const appearance = world.getStore(COMPONENTS.APPEARANCE).get(fEntity);
+    const appearance = world.getStore<Appearance>(COMPONENTS.APPEARANCE).get(fEntity);
     if (appearance?.spriteType === 'coffee_machine') {
       const inter = interactables.get(fEntity)!;
       if (inter.interactionPoint) {
-        navigateTo(world, entity, pos, inter.interactionPoint.x, inter.interactionPoint.y, tilemap, 'coffee');
+        navigateTo(world, entity, pos, inter.interactionPoint.x, inter.interactionPoint.y, tilemap.tiles, 'coffee');
         beh.timer = 80 + rng.next() * 80;
-        useSimStore.getState().addLog(`${id.name} grabs a coffee`, 'chat');
+        world.emit('log', { message: `${id.name} grabs a coffee`, type: 'chat' });
         return;
       }
     }
@@ -171,8 +156,10 @@ function goToCoffee(world: World, entity: EntityId, beh: BehaviorState, pos: Pos
   beh.timer = 60 + rng.next() * 100;
 }
 
-function goChat(world: World, entity: EntityId, beh: BehaviorState, pos: Position, id: Identity, tilemap: any) {
-  // Find another person who is working (at their desk)
+export function chatHandler(ctx: BehaviorContext): void {
+  const { world, entity, position: pos, identity: id, tilemap } = ctx;
+  const beh = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR).get(entity)!;
+
   const others = world.query(COMPONENTS.BEHAVIOR, COMPONENTS.POSITION, COMPONENTS.IDENTITY)
     .filter(e => e !== entity);
 
@@ -186,25 +173,27 @@ function goChat(world: World, entity: EntityId, beh: BehaviorState, pos: Positio
   const targetPos = world.getStore<Position>(COMPONENTS.POSITION).get(target)!;
   const targetId = world.getStore<Identity>(COMPONENTS.IDENTITY).get(target)!;
 
-  // Go near them
   const chatX = Math.round(targetPos.x) + 1;
   const chatY = Math.round(targetPos.y);
 
-  navigateTo(world, entity, pos, chatX, chatY, tilemap, 'chatting');
+  navigateTo(world, entity, pos, chatX, chatY, tilemap.tiles, 'chatting');
   beh.timer = 120 + rng.next() * 200;
   beh.metadata = { chatTarget: targetId.name };
-  useSimStore.getState().addLog(`${id.name} chats with ${targetId.name}`, 'chat');
+  world.emit('log', { message: `${id.name} chats with ${targetId.name}`, type: 'chat' });
 }
 
-function goWhiteboard(world: World, entity: EntityId, beh: BehaviorState, pos: Position, id: Identity, tilemap: any) {
+export function whiteboardHandler(ctx: BehaviorContext): void {
+  const { world, entity, position: pos, identity: id, tilemap } = ctx;
+  const beh = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR).get(entity)!;
+
   for (const fEntity of world.query(COMPONENTS.INTERACTABLE, COMPONENTS.POSITION)) {
-    const appearance = world.getStore(COMPONENTS.APPEARANCE).get(fEntity);
+    const appearance = world.getStore<Appearance>(COMPONENTS.APPEARANCE).get(fEntity);
     if (appearance?.spriteType === 'whiteboard') {
       const inter = world.getStore<Interactable>(COMPONENTS.INTERACTABLE).get(fEntity)!;
       if (inter.interactionPoint) {
-        navigateTo(world, entity, pos, inter.interactionPoint.x, inter.interactionPoint.y, tilemap, 'meeting');
+        navigateTo(world, entity, pos, inter.interactionPoint.x, inter.interactionPoint.y, tilemap.tiles, 'meeting');
         beh.timer = 150 + rng.next() * 250;
-        useSimStore.getState().addLog(`${id.name} reviews strategy at whiteboard`, 'action');
+        world.emit('log', { message: `${id.name} reviews strategy at whiteboard`, type: 'action' });
         return;
       }
     }
@@ -213,12 +202,15 @@ function goWhiteboard(world: World, entity: EntityId, beh: BehaviorState, pos: P
   beh.timer = 100;
 }
 
-function goWander(world: World, entity: EntityId, beh: BehaviorState, pos: Position, id: Identity, tilemap: any) {
-  const tx = rng.int(2, tilemap[0].length - 3);
-  const ty = rng.int(2, tilemap.length - 3);
+export function wanderHandler(ctx: BehaviorContext): void {
+  const { world, entity, position: pos, identity: id, tilemap } = ctx;
+  const beh = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR).get(entity)!;
 
-  if (tilemap[ty] && tilemap[ty][tx] && tilemap[ty][tx].walkable) {
-    navigateTo(world, entity, pos, tx, ty, tilemap, 'idle');
+  const tx = rng.int(2, tilemap.tiles[0].length - 3);
+  const ty = rng.int(2, tilemap.tiles.length - 3);
+
+  if (tilemap.tiles[ty] && tilemap.tiles[ty][tx] && tilemap.tiles[ty][tx].walkable) {
+    navigateTo(world, entity, pos, tx, ty, tilemap.tiles, 'idle');
     beh.timer = 80 + rng.next() * 150;
   } else {
     beh.current = 'idle';
@@ -226,12 +218,14 @@ function goWander(world: World, entity: EntityId, beh: BehaviorState, pos: Posit
   }
 }
 
+// --- Shared navigation helper ---
+
 function navigateTo(world: World, entity: EntityId, pos: Position, tx: number, ty: number, tilemap: any, nextState: string) {
   const path = findPath(Math.round(pos.x), Math.round(pos.y), tx, ty, tilemap);
   if (path.length > 0) {
     world.getStore<PathFollower>(COMPONENTS.PATH_FOLLOWER).set(entity, {
       path,
-      speed: 2.5, // tiles per second
+      speed: 2.5,
     });
     const beh = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR).get(entity)!;
     beh.current = 'walking';

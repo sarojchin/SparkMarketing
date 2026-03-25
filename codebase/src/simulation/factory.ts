@@ -1,9 +1,16 @@
 /**
  * World Factory
- * 
+ *
  * Takes a MapDefinition + CharacterDefs and spawns everything
  * into an ECS World. Returns the configured world ready to tick.
- * 
+ *
+ * Wires up:
+ *   - Resources (SimClock, Tilemap)
+ *   - Event bridges (log → Zustand)
+ *   - Behavior registry (pluggable handlers)
+ *   - All systems in priority order
+ *   - Furniture and character entities
+ *
  * To add a new scenario: create a new MapDefinition + character list,
  * pass them here.
  */
@@ -14,16 +21,22 @@ import { COMPONENTS } from '@/simulation/components';
 import type {
   Position, Facing, Appearance, Animation, StatusIndicator,
   Identity, BehaviorState, Energy, Morale, Skills,
-  DeskAssignment, Interactable, FurnitureTag,
+  DeskAssignment, Interactable, FurnitureTag, BehaviorWeights,
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
-import { movementSystem, behaviorSystem, registerBehaviorWeights } from '@/simulation/systems';
+import { SIM_CLOCK, TILEMAP } from '@/simulation/resources';
+import {
+  behaviorSystem, movementSystem, clockSystem, snapshotSystem,
+  setupLogBridge,
+  workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler,
+} from '@/simulation/systems';
+import { behaviorRegistry } from '@/simulation/registries/behaviors';
 import { useSimStore } from '@/hooks/useSimStore';
 
 export interface WorldSetupResult {
   world: World;
-  personEntities: Map<string, EntityId>;  // character id -> entity id
+  personEntities: Map<string, EntityId>;
   furnitureEntities: EntityId[];
   deskEntities: EntityId[];
 }
@@ -37,8 +50,32 @@ export function createWorld(
   const furnitureEntities: EntityId[] = [];
   const deskEntities: EntityId[] = [];
 
-  // Store tilemap in sim store
+  // --- Register resources ---
+  world.setResource(SIM_CLOCK, {
+    speed: 1,
+    tick: 0,
+    simMinutes: 0,
+    simDay: 0,
+  });
+
+  world.setResource(TILEMAP, {
+    tiles: mapDef.tiles,
+    width: mapDef.width,
+    height: mapDef.height,
+  });
+
+  // Also push tilemap to Zustand for the renderer (reads from store)
   useSimStore.getState().setTilemap(mapDef.tiles, mapDef.width, mapDef.height);
+
+  // --- Wire event bridges ---
+  setupLogBridge(world);
+
+  // --- Register behaviors ---
+  behaviorRegistry.register('work', workHandler);
+  behaviorRegistry.register('coffee', coffeeHandler);
+  behaviorRegistry.register('chat', chatHandler);
+  behaviorRegistry.register('whiteboard', whiteboardHandler);
+  behaviorRegistry.register('wander', wanderHandler);
 
   // --- Spawn furniture ---
   for (const f of mapDef.furniture) {
@@ -80,18 +117,15 @@ export function createWorld(
     const entity = world.spawn();
     personEntities.set(charDef.id, entity);
 
-    // Position
     world.getStore<Position>(COMPONENTS.POSITION).set(entity, {
       x: spawn.x,
       y: spawn.y,
     });
 
-    // Facing
     world.getStore<Facing>(COMPONENTS.FACING).set(entity, {
       direction: 'down',
     });
 
-    // Appearance
     world.getStore<Appearance>(COMPONENTS.APPEARANCE).set(entity, {
       spriteType: 'person',
       primaryColor: charDef.colors.primary,
@@ -100,7 +134,6 @@ export function createWorld(
       zIndex: 10,
     });
 
-    // Animation
     world.getStore<Animation>(COMPONENTS.ANIMATION).set(entity, {
       frame: 0,
       timer: 0,
@@ -108,14 +141,12 @@ export function createWorld(
       frameCount: 4,
     });
 
-    // Status indicator
     world.getStore<StatusIndicator>(COMPONENTS.STATUS_INDICATOR).set(entity, {
       color: '#4ade80',
       visible: true,
       pulse: false,
     });
 
-    // Identity
     world.getStore<Identity>(COMPONENTS.IDENTITY).set(entity, {
       name: charDef.name,
       role: charDef.role,
@@ -123,7 +154,6 @@ export function createWorld(
       shortLabel: charDef.shortLabel,
     });
 
-    // Behavior
     world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR).set(entity, {
       current: spawn.deskIndex !== undefined ? 'working' : 'idle',
       timer: 200 + Math.random() * 400,
@@ -131,7 +161,6 @@ export function createWorld(
       metadata: {},
     });
 
-    // Energy
     world.getStore<Energy>(COMPONENTS.ENERGY).set(entity, {
       current: 85 + Math.random() * 15,
       max: 100,
@@ -139,31 +168,33 @@ export function createWorld(
       rechargeRate: 30,
     });
 
-    // Morale
     world.getStore<Morale>(COMPONENTS.MORALE).set(entity, {
       current: 65 + Math.random() * 25,
     });
 
-    // Skills
     world.getStore<Skills>(COMPONENTS.SKILLS).set(entity, {
       values: { ...charDef.skills },
+    });
+
+    // Behavior weights as a proper component
+    world.getStore<BehaviorWeights>(COMPONENTS.BEHAVIOR_WEIGHTS).set(entity, {
+      weights: { ...charDef.behaviorWeights },
     });
 
     // Desk assignment
     if (spawn.deskIndex !== undefined && deskEntities[spawn.deskIndex]) {
       world.getStore<DeskAssignment>(COMPONENTS.DESK_ASSIGNMENT).set(entity, {
         deskEntity: deskEntities[spawn.deskIndex],
-        seatOffset: { x: 1, y: 0 }, // sit to the right of desk
+        seatOffset: { x: 1, y: 0 },
       });
     }
-
-    // Register behavior weights
-    registerBehaviorWeights(entity, charDef.behaviorWeights);
   }
 
-  // --- Register systems (order matters) ---
-  world.addSystem('behavior', behaviorSystem, 10);
-  world.addSystem('movement', movementSystem, 20);
+  // --- Register systems (priority order: lower runs first) ---
+  world.addSystem('clock', clockSystem, 1);        // advance time first
+  world.addSystem('behavior', behaviorSystem, 10);  // decide actions
+  world.addSystem('movement', movementSystem, 20);  // execute movement
+  world.addSystem('snapshot', snapshotSystem, 100);  // sync to React last
 
   return { world, personEntities, furnitureEntities, deskEntities };
 }

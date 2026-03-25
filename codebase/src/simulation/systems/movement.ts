@@ -1,16 +1,24 @@
 /**
  * Movement System
- * 
+ *
  * Processes entities with Position + PathFollower components.
  * Moves them along their path, updates facing direction,
  * and triggers animation state.
+ *
+ * Reads SimClock for speed multiplier so movement scales with game speed.
  */
 
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
 import type { Position, PathFollower, Facing, BehaviorState, Animation } from '@/simulation/components';
+import { SIM_CLOCK } from '@/simulation/resources';
 
 export function movementSystem(world: World, dt: number): void {
+  const clock = world.getResource(SIM_CLOCK);
+  if (clock.speed === 0) return;
+
+  const scaledDt = dt * clock.speed;
+
   const positions = world.getStore<Position>(COMPONENTS.POSITION);
   const paths = world.getStore<PathFollower>(COMPONENTS.PATH_FOLLOWER);
   const facings = world.getStore<Facing>(COMPONENTS.FACING);
@@ -29,7 +37,7 @@ export function movementSystem(world: World, dt: number): void {
     const dx = target.x - pos.x;
     const dy = target.y - pos.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const step = pf.speed * (dt / 1000);
+    const step = pf.speed * (scaledDt / 1000);
 
     if (dist <= step) {
       // Arrived at waypoint
@@ -44,7 +52,7 @@ export function movementSystem(world: World, dt: number): void {
           beh.current = beh.nextState;
           beh.nextState = null;
         }
-        paths.delete(entity); // remove pathfollower when done
+        paths.delete(entity);
       }
     } else {
       // Move toward waypoint
@@ -62,10 +70,10 @@ export function movementSystem(world: World, dt: number): void {
       }
     }
 
-    // Tick walk animation
+    // Tick walk animation (speed-scaled)
     const anim = anims.get(entity);
     if (anim) {
-      anim.timer += dt;
+      anim.timer += scaledDt;
       if (anim.timer >= anim.speed) {
         anim.timer = 0;
         anim.frame = (anim.frame + 1) % anim.frameCount;

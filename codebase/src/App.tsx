@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { World } from '@/ecs';
-import { COMPONENTS } from '@/simulation/components';
-import type { Position, Appearance, BehaviorState, Identity } from '@/simulation/components';
 import { createWorld } from '@/simulation/factory';
 import { SPARK_AGENCY_MAP } from '@/simulation/data/maps';
 import { SPARK_TEAM } from '@/simulation/data/characters';
+import { SIM_CLOCK } from '@/simulation/resources';
 import { CanvasRenderer } from '@/renderer/CanvasRenderer';
 import { useSimStore } from '@/hooks/useSimStore';
-import type { PersonSnapshot } from '@/hooks/useSimStore';
 
 import { HUD } from '@/ui/overlays/HUD';
 import { Tooltip } from '@/ui/overlays/Tooltip';
@@ -23,46 +21,6 @@ export default function App() {
   const lastTimeRef = useRef<number>(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  // Snapshot sync interval — update React every ~200ms, not every frame
-  const snapshotTimerRef = useRef<number>(0);
-
-  const syncSnapshot = useCallback(() => {
-    const world = worldRef.current;
-    if (!world) return;
-
-    const positions = world.getStore<Position>(COMPONENTS.POSITION);
-    const appearances = world.getStore<Appearance>(COMPONENTS.APPEARANCE);
-    const behaviors = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR);
-    const identities = world.getStore<Identity>(COMPONENTS.IDENTITY);
-
-    const people: PersonSnapshot[] = [];
-
-    for (const entity of world.query(
-      COMPONENTS.POSITION,
-      COMPONENTS.APPEARANCE,
-      COMPONENTS.BEHAVIOR,
-      COMPONENTS.IDENTITY,
-    )) {
-      const pos = positions.get(entity)!;
-      const app = appearances.get(entity)!;
-      const beh = behaviors.get(entity)!;
-      const id = identities.get(entity)!;
-
-      people.push({
-        entity,
-        name: id.name,
-        role: id.role,
-        department: id.department,
-        color: app.primaryColor,
-        state: beh.current,
-        x: pos.x,
-        y: pos.y,
-      });
-    }
-
-    useSimStore.getState().updatePeople(people);
-  }, []);
-
   // --- Init ---
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -73,24 +31,32 @@ export default function App() {
     const renderer = new CanvasRenderer(canvasRef.current);
     rendererRef.current = renderer;
 
-    // Initial log
-    const store = useSimStore.getState();
-    store.addLog('— Monday begins —', 'event');
-    store.addLog('Maya opens the office', 'action');
-    store.addLog('Team arrives for the day', 'event');
-
-    // Initial snapshot
-    syncSnapshot();
+    // Initial log via event bus (no direct store access)
+    world.emit('log', { message: '— Monday begins —', type: 'event' });
+    world.emit('log', { message: 'Maya opens the office', type: 'action' });
+    world.emit('log', { message: 'Team arrives for the day', type: 'event' });
 
     // Resize handler
     const handleResize = () => renderer.resize();
     window.addEventListener('resize', handleResize);
 
+    // Sync speed changes from UI back into ECS resource
+    let prevSpeed = useSimStore.getState().speed;
+    const unsubSpeed = useSimStore.subscribe((state) => {
+      if (state.speed !== prevSpeed) {
+        prevSpeed = state.speed;
+        if (worldRef.current) {
+          worldRef.current.getResource(SIM_CLOCK).speed = state.speed;
+        }
+      }
+    });
+
     return () => {
       window.removeEventListener('resize', handleResize);
+      unsubSpeed();
       cancelAnimationFrame(rafRef.current);
     };
-  }, [syncSnapshot]);
+  }, []);
 
   // --- Game loop ---
   useEffect(() => {
@@ -103,18 +69,8 @@ export default function App() {
       const store = useSimStore.getState();
 
       if (world && renderer && store.speed > 0) {
-        // Tick ECS
-        world.tick(dt * store.speed);
-
-        // Advance sim clock
-        store.advanceTime(dt);
-
-        // Sync React state (throttled)
-        snapshotTimerRef.current += dt;
-        if (snapshotTimerRef.current > 200) {
-          snapshotTimerRef.current = 0;
-          syncSnapshot();
-        }
+        // Tick all ECS systems (clock, behavior, movement, snapshot)
+        world.tick(dt);
       }
 
       // Always render (even paused — for hover effects etc)
@@ -127,7 +83,7 @@ export default function App() {
 
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [syncSnapshot]);
+  }, []);
 
   // --- Mouse interaction ---
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
