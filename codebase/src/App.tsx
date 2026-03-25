@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { GameEngine, GameState } from '@/engine/types';
-import { SimpleEngine } from '@/engine/v1_simple/SimpleEngine';
+import { SimpleEngineECS } from '@/engine/v1_simple/SimpleEngineECS';
 import { useSimStore } from '@/hooks/useSimStore';
 
 import { HUD } from '@/ui/overlays/HUD';
@@ -22,7 +22,7 @@ export default function App() {
   // --- Initialize engine ---
   useEffect(() => {
     const initEngine = async () => {
-      const engine = new SimpleEngine();
+      const engine = new SimpleEngineECS();
       await engine.init();
       engineRef.current = engine;
 

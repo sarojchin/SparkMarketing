@@ -11,6 +11,68 @@
 
 export type EntityId = number;
 
+// --- Component Definitions ---
+
+/** Position in world space */
+export interface PositionComponent {
+  x: number;
+  y: number;
+}
+
+/** Current state/activity */
+export interface StateComponent {
+  state: 'working' | 'idle' | 'walking' | 'coffee' | 'meeting' | 'chatting' | 'thinking' | 'away';
+}
+
+/** Character information */
+export interface CharacterComponent {
+  name: string;
+  role: string;
+  department: string;
+  color: string;
+}
+
+/** Client information */
+export interface ClientComponent {
+  name: string;
+  satisfaction: number;
+  contractValue: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  daysSinceClienthood: number;
+}
+
+/** Contract information */
+export interface ContractComponent {
+  clientId: EntityId;
+  monthlyValue: number;
+  status: 'active' | 'completed' | 'lost' | 'at-risk';
+  daysRemaining: number;
+  deliverablesMet?: number;
+}
+
+/** Campaign information */
+export interface CampaignComponent {
+  contractId: EntityId;
+  name: string;
+  phase: 'strategy' | 'creative' | 'production' | 'launch' | 'reporting';
+  progress: number;
+  status: 'active' | 'completed' | 'blocked';
+}
+
+/** Financial data */
+export interface FinancialComponent {
+  cashOnHand: number;
+  monthlyRevenue: number;
+  monthlyExpenses: number;
+  runway: number;
+  profitMargin: number;
+}
+
+/** Entity type marker */
+export interface EntityTypeComponent {
+  type: 'character' | 'client' | 'contract' | 'campaign' | 'agency';
+}
+
 export class ComponentStore<T> {
   private data = new Map<EntityId, T>();
 
