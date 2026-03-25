@@ -86,16 +86,18 @@ export function OfficeCanvas({ gameState }: { gameState: GameState }) {
   }, [gameState]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={800}
-      height={600}
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-        backgroundColor: '#0b0c10',
-      }}
-    />
+    <div style={{ width: '100%', height: '100%' }}>
+      <canvas
+        ref={canvasRef}
+        width={window.innerWidth}
+        height={window.innerHeight}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          backgroundColor: '#0b0c10',
+        }}
+      />
+    </div>
   );
 }
