@@ -24,7 +24,7 @@ export function HUD() {
       {/* Top left — title */}
       <div className="fixed top-3 left-3.5 z-10 pointer-events-none">
         <div className="text-[10px] font-pixel text-sim-green tracking-[2px]"
-          style={{ textShadow: '0 0 8px rgba(74,222,128,0.3)' }}>
+          style={{ textShadow: '0 1px 2px rgba(22,163,74,0.2)' }}>
           SPARK AGENCY
         </div>
         <div className="text-[7px] font-pixel text-sim-textDim tracking-[1px] mt-0.5">
