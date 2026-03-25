@@ -24,6 +24,12 @@ import type {
   Notification,
   LogEntry,
 } from '../types';
+import { SimulationManager } from '../SimulationManager';
+import {
+  CharacterSystem,
+  BusinessProcessSystem,
+  RandomizationSystem,
+} from '../systems';
 
 // Client entity with extended properties
 interface ClientEntity {
@@ -40,6 +46,7 @@ export class SimpleEngine implements GameEngine {
   private clientEntities = new Map<string, ClientEntity>();
   private lastDecisionTime = 0;
   private decisionIntervalMs = 120000; // 2 minutes of game time (at 1x speed)
+  private simManager: SimulationManager;
 
   async init() {
     console.log('🎮 Engine initializing...');
@@ -161,6 +168,14 @@ export class SimpleEngine implements GameEngine {
       });
     }
 
+    // Initialize SimulationManager with placeholder systems
+    console.log('🎮 Initializing SimulationManager...');
+    this.simManager = new SimulationManager();
+    this.simManager.registerSystem('character', new CharacterSystem());
+    this.simManager.registerSystem('business', new BusinessProcessSystem());
+    this.simManager.registerSystem('randomization', new RandomizationSystem());
+    await this.simManager.init(this.state);
+
     // Generate first decision
     console.log('🎮 Generating first decision...');
     this.generateRandomDecision();
@@ -280,6 +295,9 @@ export class SimpleEngine implements GameEngine {
       }
     }
 
+    // Tick all registered systems
+    this.simManager.tick(this.state, dt);
+
     this.emitStateChange();
   }
 
@@ -341,6 +359,7 @@ export class SimpleEngine implements GameEngine {
 
   async destroy() {
     this.stateListeners.clear();
+    await this.simManager.destroy();
   }
 
   // --- Private methods ---
