@@ -337,7 +337,24 @@ export class SimpleEngine implements GameEngine {
     };
 
     for (const person of this.state.team) {
-      if (Math.random() < 0.15) {
+      // Move characters around the office
+      if (Math.random() < 0.08) {
+        // Randomly decide to move to a new location
+        const destinations: Array<{ x: number; y: number; action: string }> = [
+          { x: 5, y: 8, action: 'Working at desk' },
+          { x: 10, y: 8, action: 'Working at desk' },
+          { x: 15, y: 8, action: 'Working at desk' },
+          { x: 18, y: 6, action: 'Getting coffee' },
+          { x: 2, y: 5.5, action: 'Getting water' },
+          { x: 12, y: 6, action: 'Brainstorming' },
+        ];
+        const dest = destinations[Math.floor(Math.random() * destinations.length)];
+        person.x = dest.x;
+        person.y = dest.y;
+        person.action = dest.action;
+        person.state = 'walking';
+      } else if (Math.random() < 0.15) {
+        // Change activity while staying in place
         const states: PersonSnapshot['state'][] = [
           'working',
           'idle',
