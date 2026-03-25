@@ -252,10 +252,10 @@ function TeamPanelWithState({ gameState }: { gameState: GameState }) {
               />
               <div className="min-w-0 flex-1">
                 <div className="text-[8px] text-sim-text font-pixel truncate">
-                  {person.name}
+                  {person.name} • {person.role}
                 </div>
-                <div className="text-[7px] text-sim-textDim font-pixel">
-                  {person.role}
+                <div className="text-[7px] text-sim-textDim font-pixel truncate">
+                  {person.action}
                 </div>
                 <div className={`text-[7px] font-pixel ${style.class}`}>
                   {style.label}
