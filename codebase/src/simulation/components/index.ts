@@ -120,6 +120,15 @@ export interface BehaviorWeights {
   weights: Record<string, number>; // behavior name -> probability weight
 }
 
+// --- Production ---
+
+export interface ProductionTask {
+  taskName: string;       // e.g. "Blog Post", "Ad Creative"
+  progress: number;       // 0–1
+  progressRate: number;   // progress per second while working
+  complete: boolean;
+}
+
 // --- Furniture ---
 
 export interface Interactable {
@@ -158,4 +167,5 @@ export const COMPONENTS = {
   INTERACTABLE: 'interactable',
   FURNITURE_TAG: 'furnitureTag',
   BEHAVIOR_WEIGHTS: 'behaviorWeights',
+  PRODUCTION_TASK: 'productionTask',
 } as const;

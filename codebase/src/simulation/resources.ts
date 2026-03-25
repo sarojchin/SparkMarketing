@@ -36,3 +36,14 @@ export interface TilemapResource {
 }
 
 export const TILEMAP = new ResourceKey<TilemapResource>('tilemap');
+
+// --- Campaign / Production ---
+
+export interface Campaign {
+  campaignsShipped: number;
+  revenue: number;
+  campaignValue: number;   // revenue per shipped campaign
+  campaignNumber: number;  // current campaign # (for display)
+}
+
+export const CAMPAIGN = new ResourceKey<Campaign>('campaign');
