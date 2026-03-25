@@ -22,15 +22,17 @@ import type {
   Position, Facing, Appearance, Animation, StatusIndicator,
   Identity, BehaviorState, Energy, Morale, Skills,
   DeskAssignment, Interactable, FurnitureTag, BehaviorWeights,
+  ProductionTask,
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
-import { SIM_CLOCK, TILEMAP } from '@/simulation/resources';
+import { SIM_CLOCK, TILEMAP, CAMPAIGN } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,
-  setupLogBridge,
+  productionSystem, setupLogBridge,
   workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler,
 } from '@/simulation/systems';
+import { ROLE_TASKS, BASE_PROGRESS_RATE } from '@/simulation/data/production';
 import { behaviorRegistry } from '@/simulation/registries/behaviors';
 import { useSimStore } from '@/hooks/useSimStore';
 
@@ -62,6 +64,13 @@ export function createWorld(
     tiles: mapDef.tiles,
     width: mapDef.width,
     height: mapDef.height,
+  });
+
+  world.setResource(CAMPAIGN, {
+    campaignsShipped: 0,
+    revenue: 0,
+    campaignValue: 5000,
+    campaignNumber: 0,
   });
 
   // Also push tilemap to Zustand for the renderer (reads from store)
@@ -188,13 +197,24 @@ export function createWorld(
         seatOffset: { x: 1, y: 0 },
       });
     }
+
+    // Production task
+    const roleTasks = ROLE_TASKS[charDef.role];
+    const taskName = roleTasks ? roleTasks[0] : 'General work';
+    world.getStore<ProductionTask>(COMPONENTS.PRODUCTION_TASK).set(entity, {
+      taskName,
+      progress: 0,
+      progressRate: BASE_PROGRESS_RATE,
+      complete: false,
+    });
   }
 
   // --- Register systems (priority order: lower runs first) ---
-  world.addSystem('clock', clockSystem, 1);        // advance time first
-  world.addSystem('behavior', behaviorSystem, 10);  // decide actions
-  world.addSystem('movement', movementSystem, 20);  // execute movement
-  world.addSystem('snapshot', snapshotSystem, 100);  // sync to React last
+  world.addSystem('clock', clockSystem, 1);           // advance time first
+  world.addSystem('behavior', behaviorSystem, 10);    // decide actions
+  world.addSystem('movement', movementSystem, 20);    // execute movement
+  world.addSystem('production', productionSystem, 30); // advance work progress
+  world.addSystem('snapshot', snapshotSystem, 100);    // sync to React last
 
   return { world, personEntities, furnitureEntities, deskEntities };
 }

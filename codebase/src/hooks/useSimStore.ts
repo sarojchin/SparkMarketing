@@ -24,6 +24,9 @@ export interface PersonSnapshot {
   state: AgentState;
   x: number;
   y: number;
+  taskName: string;
+  taskProgress: number;
+  taskComplete: boolean;
 }
 
 export interface LogEntry {
@@ -52,6 +55,10 @@ interface SimState {
   selectedEntity: EntityId | null;
   hoveredEntity: EntityId | null;
 
+  // Production
+  campaignsShipped: number;
+  revenue: number;
+
   // Log
   log: LogEntry[];
 
@@ -63,6 +70,7 @@ interface SimState {
   setHoveredEntity: (entity: EntityId | null) => void;
   advanceTime: (dt: number) => void;
   syncClock: (tick: number, simMinutes: number, simDay: number, speed: number) => void;
+  syncCampaign: (campaignsShipped: number, revenue: number) => void;
   addLog: (message: string, type: LogEntry['type']) => void;
 }
 
@@ -87,6 +95,9 @@ export const useSimStore = create<SimState>((set, get) => ({
   selectedEntity: null,
   hoveredEntity: null,
 
+  campaignsShipped: 0,
+  revenue: 0,
+
   log: [],
 
   setSpeed: (speed) => set({ speed }),
@@ -100,6 +111,8 @@ export const useSimStore = create<SimState>((set, get) => ({
   setHoveredEntity: (entity) => set({ hoveredEntity: entity }),
 
   syncClock: (tick, simMinutes, simDay, speed) => set({ tick, simMinutes, simDay, speed }),
+
+  syncCampaign: (campaignsShipped, revenue) => set({ campaignsShipped, revenue }),
 
   advanceTime: (dt) => {
     const state = get();

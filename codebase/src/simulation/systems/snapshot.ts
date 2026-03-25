@@ -13,8 +13,8 @@
 
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
-import type { Position, Appearance, BehaviorState, Identity } from '@/simulation/components';
-import { SIM_CLOCK } from '@/simulation/resources';
+import type { Position, Appearance, BehaviorState, Identity, ProductionTask } from '@/simulation/components';
+import { SIM_CLOCK, CAMPAIGN } from '@/simulation/resources';
 import { useSimStore } from '@/hooks/useSimStore';
 import type { PersonSnapshot } from '@/hooks/useSimStore';
 
@@ -30,6 +30,7 @@ export function snapshotSystem(world: World, dt: number): void {
   const appearances = world.getStore<Appearance>(COMPONENTS.APPEARANCE);
   const behaviors = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR);
   const identities = world.getStore<Identity>(COMPONENTS.IDENTITY);
+  const tasks = world.getStore<ProductionTask>(COMPONENTS.PRODUCTION_TASK);
 
   const people: PersonSnapshot[] = [];
 
@@ -43,6 +44,7 @@ export function snapshotSystem(world: World, dt: number): void {
     const app = appearances.get(entity)!;
     const beh = behaviors.get(entity)!;
     const id = identities.get(entity)!;
+    const task = tasks.get(entity);
 
     people.push({
       entity,
@@ -53,12 +55,17 @@ export function snapshotSystem(world: World, dt: number): void {
       state: beh.current,
       x: pos.x,
       y: pos.y,
+      taskName: task?.taskName ?? '',
+      taskProgress: task?.progress ?? 0,
+      taskComplete: task?.complete ?? false,
     });
   }
 
-  // Sync people + clock state to Zustand in one batch
+  // Sync people + clock + campaign state to Zustand
   const clock = world.getResource(SIM_CLOCK);
+  const campaign = world.getResource(CAMPAIGN);
   const store = useSimStore.getState();
   store.updatePeople(people);
   store.syncClock(clock.tick, clock.simMinutes, clock.simDay, clock.speed);
+  store.syncCampaign(campaign.campaignsShipped, campaign.revenue);
 }

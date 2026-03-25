@@ -9,11 +9,13 @@ function formatTime(minutes: number): string {
 }
 
 export function InfoPanel() {
-  const { people, simMinutes, simDay, speed } = useSimStore((s) => ({
+  const { people, simMinutes, simDay, speed, campaignsShipped, revenue } = useSimStore((s) => ({
     people: s.people,
     simMinutes: s.simMinutes,
     simDay: s.simDay,
     speed: s.speed,
+    campaignsShipped: s.campaignsShipped,
+    revenue: s.revenue,
   }));
 
   const working = people.filter((p) => p.state === 'working').length;
@@ -26,15 +28,17 @@ export function InfoPanel() {
       </div>
       <div className="space-y-1">
         {[
-          ['Team Size', String(people.length)],
+          ['Team', String(people.length)],
           ['Working', String(working)],
           ['Day', day],
           ['Time', formatTime(simMinutes)],
           ['Speed', `${speed}x`],
+          ['Campaigns', String(campaignsShipped)],
+          ['Revenue', `$${revenue.toLocaleString()}`],
         ].map(([label, value]) => (
           <div key={label} className="flex justify-between text-[8px] font-pixel">
             <span className="text-sim-textDim">{label}</span>
-            <span className="text-sim-text">{value}</span>
+            <span className={label === 'Revenue' ? 'text-sim-green' : 'text-sim-text'}>{value}</span>
           </div>
         ))}
       </div>

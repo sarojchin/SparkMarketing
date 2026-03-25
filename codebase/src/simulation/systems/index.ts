@@ -3,3 +3,4 @@ export { behaviorSystem, workHandler, coffeeHandler, chatHandler, whiteboardHand
 export { clockSystem } from './clock';
 export { snapshotSystem } from './snapshot';
 export { setupLogBridge } from './log-bridge';
+export { productionSystem } from './production';

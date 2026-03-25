@@ -31,12 +31,25 @@ export function TeamPanel() {
                 <div className="text-[8px] text-sim-text font-pixel truncate">
                   {person.name}
                 </div>
-                <div className="text-[7px] text-sim-textDim font-pixel">
-                  {person.role}
+                <div className="text-[7px] text-sim-textDim font-pixel truncate">
+                  {person.taskName || person.role}
                 </div>
-                <div className={`text-[7px] font-pixel ${style.class}`}>
-                  {style.label}
-                </div>
+                {person.taskName && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <div className="flex-1 h-[3px] bg-sim-border rounded-sm overflow-hidden">
+                      <div
+                        className="h-full rounded-sm transition-all duration-300"
+                        style={{
+                          width: `${Math.round(person.taskProgress * 100)}%`,
+                          backgroundColor: person.taskComplete ? '#16a34a' : person.color,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[6px] font-pixel text-sim-textDim w-5 text-right">
+                      {person.taskComplete ? '✓' : `${Math.round(person.taskProgress * 100)}%`}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           );

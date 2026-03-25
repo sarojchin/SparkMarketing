@@ -12,7 +12,7 @@ import type { World, EntityId } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
 import type {
   Position, Appearance, Animation, BehaviorState,
-  StatusIndicator, FurnitureTag, Facing,
+  StatusIndicator, FurnitureTag, Facing, ProductionTask,
 } from '@/simulation/components';
 import type { TileData } from '@/simulation/components';
 
@@ -256,6 +256,7 @@ export class CanvasRenderer {
     const behaviors = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR);
     const animations = world.getStore<Animation>(COMPONENTS.ANIMATION);
     const statusIndicators = world.getStore<StatusIndicator>(COMPONENTS.STATUS_INDICATOR);
+    const productionTasks = world.getStore<ProductionTask>(COMPONENTS.PRODUCTION_TASK);
 
     const people: { entity: EntityId; pos: Position; app: Appearance }[] = [];
     for (const entity of world.query(COMPONENTS.POSITION, COMPONENTS.APPEARANCE, COMPONENTS.BEHAVIOR)) {
@@ -272,8 +273,9 @@ export class CanvasRenderer {
       const beh = behaviors.get(entity);
       const anim = animations.get(entity);
       const status = statusIndicators.get(entity);
+      const task = productionTasks.get(entity);
 
-      this.drawPerson(pos.x, pos.y, app, beh, anim, status);
+      this.drawPerson(pos.x, pos.y, app, beh, anim, status, task);
     }
   }
 
@@ -284,6 +286,7 @@ export class CanvasRenderer {
     beh: BehaviorState | undefined,
     anim: Animation | undefined,
     status: StatusIndicator | undefined,
+    task: ProductionTask | undefined,
   ): void {
     const isWalking = beh?.current === 'walking';
     const isWorking = beh?.current === 'working';
@@ -333,6 +336,30 @@ export class CanvasRenderer {
       this.rect(x, drawY, 7, -2 + dotPulse, 2, 2, status.color);
       this.ctx.globalAlpha = 1;
     }
+
+    // Progress bar (below character)
+    if (task && !task.complete) {
+      this.drawProgressBar(x, drawY, task.progress, app.primaryColor);
+    }
+  }
+
+  private drawProgressBar(
+    tileX: number,
+    tileY: number,
+    progress: number,
+    fillColor: string,
+  ): void {
+    const barW = 12;  // source pixels
+    const barH = 2;
+    const offX = 2;   // center under 16px tile
+    const offY = 17;  // just below feet
+
+    // Background track
+    this.rect(tileX, tileY, offX, offY, barW, barH, '#c9c3b8');
+
+    // Fill
+    const fillW = Math.max(1, Math.round(barW * progress));
+    this.rect(tileX, tileY, offX, offY, fillW, barH, fillColor);
   }
 
   // --- Hit testing ---
