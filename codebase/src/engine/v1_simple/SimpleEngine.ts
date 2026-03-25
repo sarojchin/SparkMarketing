@@ -97,7 +97,6 @@ export class SimpleEngine implements GameEngine {
           role: 'CEO',
           department: 'Leadership',
           state: 'working',
-          action: 'Reviewing quarterly report',
           x: 5,
           y: 5,
           color: '#f472b6',
@@ -108,7 +107,6 @@ export class SimpleEngine implements GameEngine {
           role: 'Content Strategist',
           department: 'Content',
           state: 'working',
-          action: 'Writing blog post',
           x: 7,
           y: 3,
           color: '#60a5fa',
@@ -119,7 +117,6 @@ export class SimpleEngine implements GameEngine {
           role: 'Ads Manager',
           department: 'Paid Media',
           state: 'idle',
-          action: 'Waiting for client feedback',
           x: 4,
           y: 7,
           color: '#4ade80',
@@ -130,7 +127,6 @@ export class SimpleEngine implements GameEngine {
           role: 'Designer',
           department: 'Creative',
           state: 'working',
-          action: 'Designing campaign assets',
           x: 9,
           y: 6,
           color: '#fbbf24',
@@ -286,91 +282,16 @@ export class SimpleEngine implements GameEngine {
       this.generateRandomDecision();
     }
 
-    // Simulate team activity (random state changes and actions)
-    const actionTemplates: Record<PersonSnapshot['state'], string[]> = {
-      working: [
-        'Writing copy',
-        'Analyzing metrics',
-        'Creating graphics',
-        'Reviewing strategy',
-        'Managing campaign',
-        'Coordinating with client',
-      ],
-      idle: [
-        'Waiting for feedback',
-        'Checking emails',
-        'Between tasks',
-        'Planning next steps',
-        'Reviewing notes',
-      ],
-      coffee: [
-        'Getting coffee',
-        'Taking a break',
-        'Chatting by the machine',
-      ],
-      meeting: [
-        'Client call',
-        'Team standup',
-        'Strategy session',
-      ],
-      chatting: [
-        'Team discussion',
-        'Brainstorming ideas',
-        'Discussing project',
-      ],
-      thinking: [
-        'Brainstorming',
-        'Planning approach',
-        'Solving problem',
-        'Considering options',
-      ],
-      walking: [
-        'Getting supplies',
-        'Visiting team',
-        'Going to meeting',
-      ],
-      away: [
-        'Out of office',
-        'Working remotely',
-        'Client visit',
-      ],
-    };
-
+    // Simulate team activity (random state changes)
     for (const person of this.state.team) {
-      // Move characters around the office
-      if (Math.random() < 0.08) {
-        // Randomly decide to move to a new location
-        const destinations: Array<{ x: number; y: number; action: string }> = [
-          { x: 5, y: 8, action: 'Working at desk' },
-          { x: 10, y: 8, action: 'Working at desk' },
-          { x: 15, y: 8, action: 'Working at desk' },
-          { x: 18, y: 6, action: 'Getting coffee' },
-          { x: 2, y: 5.5, action: 'Getting water' },
-          { x: 12, y: 6, action: 'Brainstorming' },
-        ];
-        const dest = destinations[Math.floor(Math.random() * destinations.length)];
-        person.x = dest.x;
-        person.y = dest.y;
-        person.action = dest.action;
-        person.state = 'walking';
-      } else if (Math.random() < 0.15) {
-        // Change activity while staying in place
+      if (Math.random() < 0.1) {
         const states: PersonSnapshot['state'][] = [
           'working',
           'idle',
           'coffee',
           'thinking',
-          'chatting',
         ];
-        const newState = states[Math.floor(Math.random() * states.length)];
-        person.state = newState;
-
-        // Update action based on new state
-        const actions = actionTemplates[newState] || [];
-        if (actions.length > 0) {
-          person.action = actions[Math.floor(Math.random() * actions.length)];
-          this.addLog(`${person.name} ${person.action.toLowerCase()}`, 'action');
-        }
+        person.state = states[Math.floor(Math.random() * states.length)];
       }
     }
 
@@ -648,24 +569,18 @@ export class SimpleEngine implements GameEngine {
     // Strategy question
     if (decision.type === 'strategy_question') {
       if (option.id === 'hire') {
-        const roles = ['Developer', 'Designer', 'Strategist', 'Account Manager', 'Analyst'];
-        const departments = ['Operations', 'Technical', 'Creative', 'Account Management'];
-        const newRole = roles[Math.floor(Math.random() * roles.length)];
-        const newDept = departments[Math.floor(Math.random() * departments.length)];
-
         this.state.team.push({
           entity: Math.max(...this.state.team.map((p) => p.entity)) + 1,
           name: 'New Hire',
-          role: newRole,
-          department: newDept,
+          role: 'Specialist',
+          department: 'Operations',
           state: 'working',
-          action: 'Getting onboarded',
           x: Math.random() * 20,
           y: Math.random() * 14,
           color: '#' + Math.floor(Math.random() * 16777215).toString(16),
         });
         this.state.financials.monthlyExpenses += 6000;
-        this.addLog(`Hired new ${newRole} in ${newDept}`, 'success');
+        this.addLog('Hired new team member', 'success');
       } else if (option.id === 'tools') {
         this.state.financials.monthlyExpenses += 500;
         this.addLog('Invested in tools. Team efficiency increased.', 'success');

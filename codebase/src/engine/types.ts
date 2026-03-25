@@ -48,7 +48,6 @@ export interface PersonSnapshot {
   role: string;
   department: string;
   state: 'working' | 'idle' | 'walking' | 'coffee' | 'meeting' | 'chatting' | 'thinking' | 'away';
-  action: string; // Current action being performed
   x: number;
   y: number;
   color: string;

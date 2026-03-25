@@ -1,22 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { GameEngine, GameState, LogEntry } from '@/engine/types';
+import type { GameEngine, GameState } from '@/engine/types';
 import { SimpleEngine } from '@/engine/v1_simple/SimpleEngine';
 import { useSimStore } from '@/hooks/useSimStore';
 
 import { HUD } from '@/ui/overlays/HUD';
 import { Tooltip } from '@/ui/overlays/Tooltip';
 import { DecisionDialog } from '@/ui/overlays/DecisionDialog';
-import { LogPopup } from '@/ui/overlays/LogPopup';
 import { OfficeCanvas } from '@/ui/canvas/OfficeCanvas';
 import { TeamPanel } from '@/ui/panels/TeamPanel';
 import { InfoPanel } from '@/ui/panels/InfoPanel';
+import { LogPanel } from '@/ui/panels/LogPanel';
 
 export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showDecisionDialog, setShowDecisionDialog] = useState(false);
-  const [showLogPopup, setShowLogPopup] = useState(false);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
 
@@ -142,11 +141,8 @@ export default function App() {
         <div className="w-[160px] border-r border-sim-border">
           <InfoPanelWithState gameState={gameState} />
         </div>
-        <div
-          className="flex-1 overflow-y-auto cursor-pointer hover:bg-sim-bg/50 transition-colors"
-          onClick={() => setShowLogPopup(true)}
-        >
-          <LogPreviewWithState gameState={gameState} />
+        <div className="flex-1 overflow-y-auto">
+          <LogPanelWithState gameState={gameState} />
         </div>
       </div>
 
@@ -162,13 +158,6 @@ export default function App() {
           />
         ) : null;
       })()}
-
-      {/* Log popup */}
-      <LogPopup
-        entries={gameState.log}
-        isOpen={showLogPopup}
-        onClose={() => setShowLogPopup(false)}
-      />
     </div>
   );
 }
@@ -263,10 +252,10 @@ function TeamPanelWithState({ gameState }: { gameState: GameState }) {
               />
               <div className="min-w-0 flex-1">
                 <div className="text-[8px] text-sim-text font-pixel truncate">
-                  {person.name} • {person.role}
+                  {person.name}
                 </div>
-                <div className="text-[7px] text-sim-textDim font-pixel truncate">
-                  {person.action}
+                <div className="text-[7px] text-sim-textDim font-pixel">
+                  {person.role}
                 </div>
                 <div className={`text-[7px] font-pixel ${style.class}`}>
                   {style.label}
@@ -312,40 +301,31 @@ function InfoPanelWithState({ gameState }: { gameState: GameState }) {
   );
 }
 
-function LogPreviewWithState({ gameState }: { gameState: GameState }) {
-  const getEntryColor = (type: LogEntry['type']): string => {
-    const colors: Record<LogEntry['type'], string> = {
-      action: 'text-sim-blue',
-      event: 'text-sim-textDim',
-      chat: 'text-sim-yellow',
-      system: 'text-sim-text',
-      decision: 'text-sim-purple',
-      success: 'text-sim-green',
-      warning: 'text-sim-yellow',
-      error: 'text-sim-pink',
-      info: 'text-sim-text',
-    };
-    return colors[type] || 'text-sim-textDim';
-  };
-
+function LogPanelWithState({ gameState }: { gameState: GameState }) {
   return (
-    <div className="p-3 relative">
+    <div className="p-3">
       <div className="text-[8px] uppercase tracking-[2px] text-sim-textDim font-pixel mb-2">
         Activity Log
-        <span className="float-right text-[7px]">click to expand ↗</span>
       </div>
-      <div className="space-y-1 text-[7px] font-pixel max-h-24 overflow-hidden">
-        {gameState.log.slice(0, 8).map((entry) => (
-          <div key={entry.id} className={getEntryColor(entry.type)}>
-            <span className="text-sim-textDim">[{entry.time}]</span> {entry.message.slice(0, 60)}
-            {entry.message.length > 60 ? '...' : ''}
+      <div className="space-y-1 text-[7px] font-pixel">
+        {gameState.log.map((entry) => (
+          <div
+            key={entry.id}
+            className={`
+              ${
+                entry.type === 'success'
+                  ? 'text-sim-green'
+                  : entry.type === 'warning'
+                    ? 'text-sim-yellow'
+                    : entry.type === 'error'
+                      ? 'text-sim-pink'
+                      : 'text-sim-textDim'
+              }
+            `}
+          >
+            <span className="text-sim-textDim">[{entry.time}]</span> {entry.message}
           </div>
         ))}
-        {gameState.log.length > 8 && (
-          <div className="text-sim-textDim text-[6px] italic pt-1">
-            ... and {gameState.log.length - 8} more entries
-          </div>
-        )}
       </div>
     </div>
   );
