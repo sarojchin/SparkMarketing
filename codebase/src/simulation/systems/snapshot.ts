@@ -11,7 +11,7 @@
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
 import type { Position, Appearance, BehaviorState, Identity, PipelineState } from '@/simulation/components';
-import { SIM_CLOCK, CAMPAIGN } from '@/simulation/resources';
+import { SIM_CLOCK, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
 import { useSimStore } from '@/hooks/useSimStore';
 import type { PersonSnapshot } from '@/hooks/useSimStore';
 
@@ -67,4 +67,7 @@ export function snapshotSystem(world: World, dt: number): void {
   store.updatePeople(people);
   store.syncClock(clock.tick, clock.simMinutes, clock.simDay, clock.speed);
   store.syncCampaign(campaign.campaignsShipped, campaign.grossIncome, campaign.bank);
+
+  const directive = world.getResource(PLAYER_DIRECTIVE);
+  store.syncDirective(directive.assignedPhase);
 }

@@ -2,25 +2,38 @@
  * Pipeline System
  *
  * Advances each person through their campaign pipeline while working.
- * Steps are sequential — each must complete before the next begins.
- * When the final step completes, the campaign ships, revenue is earned,
- * and the pipeline resets for the next campaign.
+ * Steps are sequential within a phase, but phases only advance when
+ * the player assigns a directive via the PipelinePanel.
  *
- * Reads: BehaviorState, PipelineState, SimClock
- * Writes: PipelineState, Campaign resource
- * Emits: 'log' events for every step start/completion and campaign shipment
+ * When a phase completes, the directive is cleared and Alex waits
+ * for the player to assign the next phase.
+ *
+ * Reads: BehaviorState, PipelineState, SimClock, PlayerDirective
+ * Writes: PipelineState, Campaign resource, PlayerDirective
+ * Emits: 'log' events for step/phase transitions and campaign shipment
  */
 
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
 import type { BehaviorState, PipelineState, Identity } from '@/simulation/components';
-import { SIM_CLOCK, CAMPAIGN } from '@/simulation/resources';
+import { SIM_CLOCK, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
 import { PIPELINE_STEPS } from '@/simulation/data/production';
+
+/** Track the last directive per entity to detect when player assigns a new phase */
+const lastDirective = new Map<number, string | null>();
+
+/** Check if the next step is in a different phase than the current one */
+function isPhaseEnd(stepIndex: number): boolean {
+  const current = PIPELINE_STEPS[stepIndex];
+  const next = PIPELINE_STEPS[stepIndex + 1];
+  return !next || next.phase !== current.phase;
+}
 
 export function pipelineSystem(world: World, dt: number): void {
   const clock = world.getResource(SIM_CLOCK);
   if (clock.speed === 0) return;
 
+  const directive = world.getResource(PLAYER_DIRECTIVE);
   const scaledDt = dt * clock.speed;
   const dtSeconds = scaledDt / 1000;
 
@@ -37,11 +50,26 @@ export function pipelineSystem(world: World, dt: number): void {
 
     if (pipe.pipelineComplete) continue;
 
+    const stepDef = PIPELINE_STEPS[pipe.currentStep];
+    if (!stepDef) continue;
+
+    // Detect when player assigns a new directive — emit start log
+    const prevDirective = lastDirective.get(entity) ?? null;
+    if (directive.assignedPhase !== prevDirective) {
+      lastDirective.set(entity, directive.assignedPhase);
+      if (directive.assignedPhase && stepDef.phase === directive.assignedPhase) {
+        world.emit('log', { message: `${id.name} ${stepDef.startLog}`, type: 'action' });
+      }
+    }
+
     // Only advance progress while actively working at desk
     if (beh.current !== 'working') continue;
 
-    const stepDef = PIPELINE_STEPS[pipe.currentStep];
-    if (!stepDef) continue;
+    // No directive = waiting for player orders. Don't advance.
+    if (!directive.assignedPhase) continue;
+
+    // Only advance if the current step's phase matches the player's directive
+    if (stepDef.phase !== directive.assignedPhase) continue;
 
     pipe.stepProgress = Math.min(1, pipe.stepProgress + stepDef.rate * dtSeconds);
 
@@ -64,9 +92,29 @@ export function pipelineSystem(world: World, dt: number): void {
         pipe.phase = firstStep.phase;
         pipe.pipelineComplete = false;
 
-        world.emit('log', { message: `${id.name} ${firstStep.startLog}`, type: 'action' });
+        // Clear directive — player must assign the first phase again
+        directive.assignedPhase = null;
+
+        world.emit('log', {
+          message: `${id.name} is ready for new orders`,
+          type: 'system',
+        });
+      } else if (isPhaseEnd(pipe.currentStep)) {
+        // Phase complete — advance to next step but clear directive
+        const next = PIPELINE_STEPS[nextStep];
+        pipe.currentStep = nextStep;
+        pipe.stepProgress = 0;
+        pipe.stepName = next.name;
+        pipe.phase = next.phase;
+
+        directive.assignedPhase = null;
+
+        world.emit('log', {
+          message: `${id.name} finished ${PHASE_LABELS[stepDef.phase]}. Awaiting orders.`,
+          type: 'event',
+        });
       } else {
-        // Advance to next step
+        // Advance to next step within same phase
         const next = PIPELINE_STEPS[nextStep];
         pipe.currentStep = nextStep;
         pipe.stepProgress = 0;
@@ -79,6 +127,13 @@ export function pipelineSystem(world: World, dt: number): void {
   }
 }
 
+const PHASE_LABELS: Record<string, string> = {
+  prospecting: 'Outreach',
+  sales: 'Sales',
+  production: 'Production',
+  delivery: 'Delivery',
+};
+
 function shipCampaign(world: World, _entity: number, name: string): void {
   const campaign = world.getResource(CAMPAIGN);
 
@@ -90,10 +145,5 @@ function shipCampaign(world: World, _entity: number, name: string): void {
   world.emit('log', {
     message: `Campaign #${campaign.campaignsShipped} delivered! +$${campaign.campaignValue.toLocaleString()}`,
     type: 'event',
-  });
-
-  world.emit('log', {
-    message: `${name} starts prospecting for the next client`,
-    type: 'action',
   });
 }

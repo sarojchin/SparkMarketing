@@ -3,7 +3,7 @@ import { World } from '@/ecs';
 import { createWorld } from '@/simulation/factory';
 import { STARTER_OFFICE_MAP } from '@/simulation/data/maps';
 import { SOLO_FOUNDER } from '@/simulation/data/characters';
-import { SIM_CLOCK } from '@/simulation/resources';
+import { SIM_CLOCK, PLAYER_DIRECTIVE } from '@/simulation/resources';
 import { CanvasRenderer } from '@/renderer/CanvasRenderer';
 import { useSimStore } from '@/hooks/useSimStore';
 
@@ -35,7 +35,7 @@ export default function App() {
     // Initial log via event bus (no direct store access)
     world.emit('log', { message: '— Day 1 begins —', type: 'event' });
     world.emit('log', { message: 'Alex opens the office', type: 'action' });
-    world.emit('log', { message: 'Alex is researching potential clients', type: 'action' });
+    world.emit('log', { message: 'Awaiting your orders, boss.', type: 'system' });
 
     // Resize handler
     const handleResize = () => renderer.resize();
@@ -52,9 +52,21 @@ export default function App() {
       }
     });
 
+    // Sync player directive changes from UI into ECS resource
+    let prevDirective = useSimStore.getState().directive;
+    const unsubDirective = useSimStore.subscribe((state) => {
+      if (state.directive !== prevDirective) {
+        prevDirective = state.directive;
+        if (worldRef.current) {
+          worldRef.current.getResource(PLAYER_DIRECTIVE).assignedPhase = state.directive;
+        }
+      }
+    });
+
     return () => {
       window.removeEventListener('resize', handleResize);
       unsubSpeed();
+      unsubDirective();
       cancelAnimationFrame(rafRef.current);
     };
   }, []);

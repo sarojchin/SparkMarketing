@@ -48,3 +48,12 @@ export interface Campaign {
 }
 
 export const CAMPAIGN = new ResourceKey<Campaign>('campaign');
+
+// --- Player Directive ---
+
+export interface PlayerDirective {
+  /** Which phase the player has assigned, or null if waiting for orders */
+  assignedPhase: string | null;
+}
+
+export const PLAYER_DIRECTIVE = new ResourceKey<PlayerDirective>('playerDirective');

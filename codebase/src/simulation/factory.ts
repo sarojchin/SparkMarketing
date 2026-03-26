@@ -16,7 +16,7 @@ import type {
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
-import { SIM_CLOCK, TILEMAP, CAMPAIGN } from '@/simulation/resources';
+import { SIM_CLOCK, TILEMAP, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,
   pipelineSystem, quoteSystem, setupLogBridge,
@@ -62,6 +62,10 @@ export function createWorld(
     bank: 0,
     campaignValue: CAMPAIGN_VALUE,
     campaignNumber: 0,
+  });
+
+  world.setResource(PLAYER_DIRECTIVE, {
+    assignedPhase: null,
   });
 
   // Also push tilemap to Zustand for the renderer (reads from store)

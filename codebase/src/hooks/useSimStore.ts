@@ -62,6 +62,9 @@ interface SimState {
   grossIncome: number;
   bank: number;
 
+  // Player directive
+  directive: string | null; // assigned phase or null
+
   // Log
   log: LogEntry[];
 
@@ -74,6 +77,8 @@ interface SimState {
   advanceTime: (dt: number) => void;
   syncClock: (tick: number, simMinutes: number, simDay: number, speed: number) => void;
   syncCampaign: (campaignsShipped: number, grossIncome: number, bank: number) => void;
+  setDirective: (phase: string | null) => void;
+  syncDirective: (phase: string | null) => void;
   addLog: (message: string, type: LogEntry['type']) => void;
 }
 
@@ -102,6 +107,8 @@ export const useSimStore = create<SimState>((set, get) => ({
   grossIncome: 0,
   bank: 0,
 
+  directive: null,
+
   log: [],
 
   setSpeed: (speed) => set({ speed }),
@@ -117,6 +124,10 @@ export const useSimStore = create<SimState>((set, get) => ({
   syncClock: (tick, simMinutes, simDay, speed) => set({ tick, simMinutes, simDay, speed }),
 
   syncCampaign: (campaignsShipped, grossIncome, bank) => set({ campaignsShipped, grossIncome, bank }),
+
+  setDirective: (phase) => set({ directive: phase }),
+
+  syncDirective: (phase) => set({ directive: phase }),
 
   advanceTime: (dt) => {
     const state = get();
