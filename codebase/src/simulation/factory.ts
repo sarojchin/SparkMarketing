@@ -3,16 +3,6 @@
  *
  * Takes a MapDefinition + CharacterDefs and spawns everything
  * into an ECS World. Returns the configured world ready to tick.
- *
- * Wires up:
- *   - Resources (SimClock, Tilemap)
- *   - Event bridges (log → Zustand)
- *   - Behavior registry (pluggable handlers)
- *   - All systems in priority order
- *   - Furniture and character entities
- *
- * To add a new scenario: create a new MapDefinition + character list,
- * pass them here.
  */
 
 import { World } from '@/ecs';
@@ -22,17 +12,17 @@ import type {
   Position, Facing, Appearance, Animation, StatusIndicator,
   Identity, BehaviorState, Energy, Morale, Skills,
   DeskAssignment, Interactable, FurnitureTag, BehaviorWeights,
-  ProductionTask,
+  PipelineState,
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
 import { SIM_CLOCK, TILEMAP, CAMPAIGN } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,
-  productionSystem, setupLogBridge,
+  pipelineSystem, setupLogBridge,
   workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler,
 } from '@/simulation/systems';
-import { ROLE_TASKS, BASE_PROGRESS_RATE } from '@/simulation/data/production';
+import { PIPELINE_STEPS, CAMPAIGN_VALUE } from '@/simulation/data/production';
 import { behaviorRegistry } from '@/simulation/registries/behaviors';
 import { useSimStore } from '@/hooks/useSimStore';
 
@@ -68,8 +58,9 @@ export function createWorld(
 
   world.setResource(CAMPAIGN, {
     campaignsShipped: 0,
-    revenue: 0,
-    campaignValue: 5000,
+    grossIncome: 0,
+    bank: 0,
+    campaignValue: CAMPAIGN_VALUE,
     campaignNumber: 0,
   });
 
@@ -185,7 +176,6 @@ export function createWorld(
       values: { ...charDef.skills },
     });
 
-    // Behavior weights as a proper component
     world.getStore<BehaviorWeights>(COMPONENTS.BEHAVIOR_WEIGHTS).set(entity, {
       weights: { ...charDef.behaviorWeights },
     });
@@ -198,23 +188,24 @@ export function createWorld(
       });
     }
 
-    // Production task
-    const roleTasks = ROLE_TASKS[charDef.role];
-    const taskName = roleTasks ? roleTasks[0] : 'General work';
-    world.getStore<ProductionTask>(COMPONENTS.PRODUCTION_TASK).set(entity, {
-      taskName,
-      progress: 0,
-      progressRate: BASE_PROGRESS_RATE,
-      complete: false,
+    // Pipeline state — start at step 0
+    const firstStep = PIPELINE_STEPS[0];
+    world.getStore<PipelineState>(COMPONENTS.PIPELINE_STATE).set(entity, {
+      currentStep: 0,
+      stepProgress: 0,
+      stepName: firstStep.name,
+      phase: firstStep.phase,
+      totalSteps: PIPELINE_STEPS.length,
+      pipelineComplete: false,
     });
   }
 
   // --- Register systems (priority order: lower runs first) ---
-  world.addSystem('clock', clockSystem, 1);           // advance time first
-  world.addSystem('behavior', behaviorSystem, 10);    // decide actions
-  world.addSystem('movement', movementSystem, 20);    // execute movement
-  world.addSystem('production', productionSystem, 30); // advance work progress
-  world.addSystem('snapshot', snapshotSystem, 100);    // sync to React last
+  world.addSystem('clock', clockSystem, 1);
+  world.addSystem('behavior', behaviorSystem, 10);
+  world.addSystem('movement', movementSystem, 20);
+  world.addSystem('pipeline', pipelineSystem, 30);
+  world.addSystem('snapshot', snapshotSystem, 100);
 
   return { world, personEntities, furnitureEntities, deskEntities };
 }

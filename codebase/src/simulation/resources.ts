@@ -41,7 +41,8 @@ export const TILEMAP = new ResourceKey<TilemapResource>('tilemap');
 
 export interface Campaign {
   campaignsShipped: number;
-  revenue: number;
+  grossIncome: number;     // lifetime total earned
+  bank: number;            // current balance
   campaignValue: number;   // revenue per shipped campaign
   campaignNumber: number;  // current campaign # (for display)
 }

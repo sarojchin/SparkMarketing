@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { World } from '@/ecs';
 import { createWorld } from '@/simulation/factory';
-import { SPARK_AGENCY_MAP } from '@/simulation/data/maps';
-import { SPARK_TEAM } from '@/simulation/data/characters';
+import { STARTER_OFFICE_MAP } from '@/simulation/data/maps';
+import { SOLO_FOUNDER } from '@/simulation/data/characters';
 import { SIM_CLOCK } from '@/simulation/resources';
 import { CanvasRenderer } from '@/renderer/CanvasRenderer';
 import { useSimStore } from '@/hooks/useSimStore';
@@ -25,16 +25,16 @@ export default function App() {
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const { world } = createWorld(SPARK_AGENCY_MAP, SPARK_TEAM);
+    const { world } = createWorld(STARTER_OFFICE_MAP, SOLO_FOUNDER);
     worldRef.current = world;
 
     const renderer = new CanvasRenderer(canvasRef.current);
     rendererRef.current = renderer;
 
     // Initial log via event bus (no direct store access)
-    world.emit('log', { message: '— Monday begins —', type: 'event' });
-    world.emit('log', { message: 'Maya opens the office', type: 'action' });
-    world.emit('log', { message: 'Team arrives for the day', type: 'event' });
+    world.emit('log', { message: '— Day 1 begins —', type: 'event' });
+    world.emit('log', { message: 'Alex opens the office', type: 'action' });
+    world.emit('log', { message: 'Alex is researching potential clients', type: 'action' });
 
     // Resize handler
     const handleResize = () => renderer.resize();

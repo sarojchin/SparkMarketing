@@ -116,6 +116,35 @@ function parseAsciiMap(ascii: string[]): {
 }
 
 // ============================================================
+// STARTER OFFICE — Tiny solo founder office
+// ============================================================
+
+const STARTER_ASCII = [
+  'WWWWWWWWWW',
+  'W........W',
+  'W..DC....W',
+  'W........W',
+  'W.....K..W',
+  'W........W',
+  'W........W',
+  'WWWWOWWWWW',
+];
+
+const starterParsed = parseAsciiMap(STARTER_ASCII);
+
+export const STARTER_OFFICE_MAP: MapDefinition = {
+  id: 'starter-office',
+  name: 'Starter Office',
+  width: 10,
+  height: 8,
+  tiles: starterParsed.tiles,
+  furniture: starterParsed.furniture,
+  spawns: [
+    { id: 'founder', x: 4, y: 2, role: 'founder', deskIndex: 0 },
+  ],
+};
+
+// ============================================================
 // SPARK AGENCY — Small Marketing Office
 // ============================================================
 
@@ -154,4 +183,4 @@ export const SPARK_AGENCY_MAP: MapDefinition = {
 };
 
 // Export all available maps
-export const ALL_MAPS: MapDefinition[] = [SPARK_AGENCY_MAP];
+export const ALL_MAPS: MapDefinition[] = [STARTER_OFFICE_MAP, SPARK_AGENCY_MAP];

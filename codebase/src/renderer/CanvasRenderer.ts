@@ -12,7 +12,7 @@ import type { World, EntityId } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
 import type {
   Position, Appearance, Animation, BehaviorState,
-  StatusIndicator, FurnitureTag, Facing, ProductionTask,
+  StatusIndicator, FurnitureTag, Facing, PipelineState,
 } from '@/simulation/components';
 import type { TileData } from '@/simulation/components';
 
@@ -256,7 +256,7 @@ export class CanvasRenderer {
     const behaviors = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR);
     const animations = world.getStore<Animation>(COMPONENTS.ANIMATION);
     const statusIndicators = world.getStore<StatusIndicator>(COMPONENTS.STATUS_INDICATOR);
-    const productionTasks = world.getStore<ProductionTask>(COMPONENTS.PRODUCTION_TASK);
+    const pipelineStates = world.getStore<PipelineState>(COMPONENTS.PIPELINE_STATE);
 
     const people: { entity: EntityId; pos: Position; app: Appearance }[] = [];
     for (const entity of world.query(COMPONENTS.POSITION, COMPONENTS.APPEARANCE, COMPONENTS.BEHAVIOR)) {
@@ -273,7 +273,7 @@ export class CanvasRenderer {
       const beh = behaviors.get(entity);
       const anim = animations.get(entity);
       const status = statusIndicators.get(entity);
-      const task = productionTasks.get(entity);
+      const task = pipelineStates.get(entity);
 
       this.drawPerson(pos.x, pos.y, app, beh, anim, status, task);
     }
@@ -286,7 +286,7 @@ export class CanvasRenderer {
     beh: BehaviorState | undefined,
     anim: Animation | undefined,
     status: StatusIndicator | undefined,
-    task: ProductionTask | undefined,
+    task: PipelineState | undefined,
   ): void {
     const isWalking = beh?.current === 'walking';
     const isWorking = beh?.current === 'working';
@@ -338,8 +338,8 @@ export class CanvasRenderer {
     }
 
     // Progress bar (below character)
-    if (task && !task.complete) {
-      this.drawProgressBar(x, drawY, task.progress, app.primaryColor);
+    if (task && !task.pipelineComplete) {
+      this.drawProgressBar(x, drawY, task.stepProgress, app.primaryColor);
     }
   }
 

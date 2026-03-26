@@ -6,14 +6,11 @@
  *
  * This is the ONLY system that writes to useSimStore.
  * All other systems communicate via the World's event bus or resources.
- *
- * Scaling note: This can be replaced with reactive/dirty-flag based
- * syncing when entity counts grow large enough to matter.
  */
 
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
-import type { Position, Appearance, BehaviorState, Identity, ProductionTask } from '@/simulation/components';
+import type { Position, Appearance, BehaviorState, Identity, PipelineState } from '@/simulation/components';
 import { SIM_CLOCK, CAMPAIGN } from '@/simulation/resources';
 import { useSimStore } from '@/hooks/useSimStore';
 import type { PersonSnapshot } from '@/hooks/useSimStore';
@@ -30,7 +27,7 @@ export function snapshotSystem(world: World, dt: number): void {
   const appearances = world.getStore<Appearance>(COMPONENTS.APPEARANCE);
   const behaviors = world.getStore<BehaviorState>(COMPONENTS.BEHAVIOR);
   const identities = world.getStore<Identity>(COMPONENTS.IDENTITY);
-  const tasks = world.getStore<ProductionTask>(COMPONENTS.PRODUCTION_TASK);
+  const pipelines = world.getStore<PipelineState>(COMPONENTS.PIPELINE_STATE);
 
   const people: PersonSnapshot[] = [];
 
@@ -44,7 +41,7 @@ export function snapshotSystem(world: World, dt: number): void {
     const app = appearances.get(entity)!;
     const beh = behaviors.get(entity)!;
     const id = identities.get(entity)!;
-    const task = tasks.get(entity);
+    const pipe = pipelines.get(entity);
 
     people.push({
       entity,
@@ -55,9 +52,11 @@ export function snapshotSystem(world: World, dt: number): void {
       state: beh.current,
       x: pos.x,
       y: pos.y,
-      taskName: task?.taskName ?? '',
-      taskProgress: task?.progress ?? 0,
-      taskComplete: task?.complete ?? false,
+      stepName: pipe?.stepName ?? '',
+      stepProgress: pipe?.stepProgress ?? 0,
+      phase: pipe?.phase ?? '',
+      currentStep: pipe?.currentStep ?? 0,
+      totalSteps: pipe?.totalSteps ?? 0,
     });
   }
 
@@ -67,5 +66,5 @@ export function snapshotSystem(world: World, dt: number): void {
   const store = useSimStore.getState();
   store.updatePeople(people);
   store.syncClock(clock.tick, clock.simMinutes, clock.simDay, clock.speed);
-  store.syncCampaign(campaign.campaignsShipped, campaign.revenue);
+  store.syncCampaign(campaign.campaignsShipped, campaign.grossIncome, campaign.bank);
 }

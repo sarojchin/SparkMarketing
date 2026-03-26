@@ -120,13 +120,15 @@ export interface BehaviorWeights {
   weights: Record<string, number>; // behavior name -> probability weight
 }
 
-// --- Production ---
+// --- Production Pipeline ---
 
-export interface ProductionTask {
-  taskName: string;       // e.g. "Blog Post", "Ad Creative"
-  progress: number;       // 0–1
-  progressRate: number;   // progress per second while working
-  complete: boolean;
+export interface PipelineState {
+  currentStep: number;     // index into PIPELINE_STEPS (0–11)
+  stepProgress: number;    // 0–1 for current step
+  stepName: string;        // display name of current step
+  phase: string;           // 'prospecting' | 'sales' | 'production' | 'delivery'
+  totalSteps: number;      // total steps in pipeline
+  pipelineComplete: boolean; // true when all steps done (briefly, before reset)
 }
 
 // --- Furniture ---
@@ -167,5 +169,5 @@ export const COMPONENTS = {
   INTERACTABLE: 'interactable',
   FURNITURE_TAG: 'furnitureTag',
   BEHAVIOR_WEIGHTS: 'behaviorWeights',
-  PRODUCTION_TASK: 'productionTask',
+  PIPELINE_STATE: 'pipelineState',
 } as const;

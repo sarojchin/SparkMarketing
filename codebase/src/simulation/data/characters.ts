@@ -28,6 +28,29 @@ export interface CharacterDef {
   };
 }
 
+export const SOLO_FOUNDER: CharacterDef[] = [
+  {
+    id: 'founder',
+    name: 'Alex Chen',
+    role: 'Founder',
+    department: 'Everything',
+    shortLabel: 'Founder',
+    colors: {
+      primary: '#60a5fa',
+      hair: '#1c1917',
+      skin: '#deb887',
+    },
+    skills: { hustle: 70, design: 50, writing: 60, sales: 55 },
+    behaviorWeights: {
+      work: 0.75,
+      coffee: 0.15,
+      wander: 0.10,
+      chat: 0,
+      whiteboard: 0,
+    },
+  },
+];
+
 export const SPARK_TEAM: CharacterDef[] = [
   {
     id: 'maya',

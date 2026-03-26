@@ -9,17 +9,19 @@ function formatTime(minutes: number): string {
 }
 
 export function InfoPanel() {
-  const { people, simMinutes, simDay, speed, campaignsShipped, revenue } = useSimStore((s) => ({
+  const { people, simMinutes, simDay, speed, campaignsShipped, grossIncome, bank } = useSimStore((s) => ({
     people: s.people,
     simMinutes: s.simMinutes,
     simDay: s.simDay,
     speed: s.speed,
     campaignsShipped: s.campaignsShipped,
-    revenue: s.revenue,
+    grossIncome: s.grossIncome,
+    bank: s.bank,
   }));
 
   const working = people.filter((p) => p.state === 'working').length;
   const day = DAYS[simDay % 5] || 'Monday';
+  const currentPhase = people[0]?.phase || '—';
 
   return (
     <div className="p-3">
@@ -28,17 +30,17 @@ export function InfoPanel() {
       </div>
       <div className="space-y-1">
         {[
-          ['Team', String(people.length)],
-          ['Working', String(working)],
+          ['Phase', currentPhase],
+          ['Step', people[0] ? `${people[0].currentStep + 1}/${people[0].totalSteps}` : '—'],
           ['Day', day],
           ['Time', formatTime(simMinutes)],
           ['Speed', `${speed}x`],
           ['Campaigns', String(campaignsShipped)],
-          ['Revenue', `$${revenue.toLocaleString()}`],
+          ['Bank', `$${bank.toLocaleString()}`],
         ].map(([label, value]) => (
           <div key={label} className="flex justify-between text-[8px] font-pixel">
             <span className="text-sim-textDim">{label}</span>
-            <span className={label === 'Revenue' ? 'text-sim-green' : 'text-sim-text'}>{value}</span>
+            <span className={label === 'Bank' ? 'text-sim-green' : 'text-sim-text'}>{value}</span>
           </div>
         ))}
       </div>
