@@ -12,6 +12,7 @@ import { Tooltip } from '@/ui/overlays/Tooltip';
 import { TeamPanel } from '@/ui/panels/TeamPanel';
 import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
+import { PipelinePanel } from '@/ui/panels/PipelinePanel';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -114,6 +115,7 @@ export default function App() {
         />
         <HUD />
         <Tooltip x={mousePos.x} y={mousePos.y} />
+        <PipelinePanel />
       </div>
 
       {/* Bottom panel */}
