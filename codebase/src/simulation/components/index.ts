@@ -131,6 +131,14 @@ export interface PipelineState {
   pipelineComplete: boolean; // true when all steps done (briefly, before reset)
 }
 
+// --- Speech ---
+
+export interface SpeechBubble {
+  text: string;
+  remaining: number;  // seconds remaining
+  duration: number;   // total duration (for fade calc)
+}
+
 // --- Furniture ---
 
 export interface Interactable {
@@ -170,4 +178,5 @@ export const COMPONENTS = {
   FURNITURE_TAG: 'furnitureTag',
   BEHAVIOR_WEIGHTS: 'behaviorWeights',
   PIPELINE_STATE: 'pipelineState',
+  SPEECH_BUBBLE: 'speechBubble',
 } as const;

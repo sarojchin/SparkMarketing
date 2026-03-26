@@ -13,6 +13,7 @@ import { COMPONENTS } from '@/simulation/components';
 import type {
   Position, Appearance, Animation, BehaviorState,
   StatusIndicator, FurnitureTag, Facing, PipelineState,
+  SpeechBubble,
 } from '@/simulation/components';
 import type { TileData } from '@/simulation/components';
 
@@ -97,6 +98,7 @@ export class CanvasRenderer {
     this.drawWindows(tilemap, mapW);
     this.drawFurniture(world);
     this.drawPeople(world);
+    this.drawSpeechBubbles(world);
   }
 
   // --- Helpers ---
@@ -360,6 +362,157 @@ export class CanvasRenderer {
     // Fill
     const fillW = Math.max(1, Math.round(barW * progress));
     this.rect(tileX, tileY, offX, offY, fillW, barH, fillColor);
+  }
+
+  // --- Speech Bubbles ---
+
+  private drawSpeechBubbles(world: World): void {
+    const positions = world.getStore<Position>(COMPONENTS.POSITION);
+    const bubbles = world.getStore<SpeechBubble>(COMPONENTS.SPEECH_BUBBLE);
+
+    for (const entity of world.query(COMPONENTS.POSITION, COMPONENTS.SPEECH_BUBBLE)) {
+      const pos = positions.get(entity)!;
+      const bubble = bubbles.get(entity)!;
+
+      // Fade out in the last 0.6 seconds
+      const fadeStart = 0.6;
+      const alpha = bubble.remaining < fadeStart
+        ? Math.max(0, bubble.remaining / fadeStart)
+        : 1;
+
+      if (alpha <= 0) continue;
+
+      this.drawBubble(pos.x, pos.y, bubble.text, alpha);
+    }
+  }
+
+  private drawBubble(tileX: number, tileY: number, text: string, alpha: number): void {
+    const ctx = this.ctx;
+
+    // Pixel position of the character's head
+    const [charX, charY] = this.px(tileX, tileY);
+    const charCenterX = charX + TS / 2;
+
+    // Measure and wrap text
+    const fontSize = 9;
+    ctx.font = `${fontSize}px "Silkscreen", monospace`;
+
+    const maxWidth = 140;
+    const lines = this.wrapText(text, maxWidth);
+    const lineHeight = fontSize + 3;
+    const padding = 6;
+    const tailHeight = 4;
+
+    const textWidth = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width)));
+    const boxW = textWidth + padding * 2;
+    const boxH = lines.length * lineHeight + padding * 2 - 2;
+
+    // Position bubble above character, centered
+    const boxX = Math.round(charCenterX - boxW / 2);
+    const boxY = Math.round(charY - boxH - tailHeight - 4);
+
+    // Clamp to screen edges
+    const clampedX = Math.max(4, Math.min(boxX, this.width - boxW - 4));
+    const clampedY = Math.max(4, boxY);
+
+    ctx.globalAlpha = alpha;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    this.roundRect(clampedX + 1, clampedY + 1, boxW, boxH, 3);
+
+    // Bubble background
+    ctx.fillStyle = '#ffffff';
+    this.roundRect(clampedX, clampedY, boxW, boxH, 3);
+
+    // Border
+    ctx.strokeStyle = '#d4cfc7';
+    ctx.lineWidth = 1;
+    this.roundRectStroke(clampedX, clampedY, boxW, boxH, 3);
+
+    // Tail (small triangle pointing down to character)
+    const tailX = Math.round(charCenterX);
+    const tailXClamped = Math.max(clampedX + 6, Math.min(tailX, clampedX + boxW - 6));
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(tailXClamped - 4, clampedY + boxH);
+    ctx.lineTo(tailXClamped, clampedY + boxH + tailHeight);
+    ctx.lineTo(tailXClamped + 4, clampedY + boxH);
+    ctx.closePath();
+    ctx.fill();
+
+    // Tail border (just the two diagonal edges)
+    ctx.strokeStyle = '#d4cfc7';
+    ctx.beginPath();
+    ctx.moveTo(tailXClamped - 4, clampedY + boxH);
+    ctx.lineTo(tailXClamped, clampedY + boxH + tailHeight);
+    ctx.lineTo(tailXClamped + 4, clampedY + boxH);
+    ctx.stroke();
+
+    // Cover the tail-top border overlap with white
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(tailXClamped - 3, clampedY + boxH - 1, 6, 2);
+
+    // Text
+    ctx.fillStyle = '#2d2a24';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], clampedX + padding, clampedY + padding + i * lineHeight);
+    }
+
+    ctx.globalAlpha = 1;
+  }
+
+  private wrapText(text: string, maxWidth: number): string[] {
+    const ctx = this.ctx;
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      if (ctx.measureText(test).width > maxWidth && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+
+    return lines;
+  }
+
+  private roundRect(x: number, y: number, w: number, h: number, r: number): void {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  private roundRectStroke(x: number, y: number, w: number, h: number, r: number): void {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.stroke();
   }
 
   // --- Hit testing ---
