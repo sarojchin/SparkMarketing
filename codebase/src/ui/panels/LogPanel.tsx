@@ -5,6 +5,7 @@ const TYPE_CLASSES: Record<string, string> = {
   event:  'text-sim-blue',
   chat:   'text-sim-yellow',
   system: 'text-sim-textDim',
+  quote:  'text-sim-purple italic',
 };
 
 export function LogPanel() {

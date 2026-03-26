@@ -71,7 +71,7 @@ export interface System {
 // --- Typed Event Definitions ---
 
 export interface WorldEvents {
-  'log': { message: string; type: 'action' | 'event' | 'chat' | 'system' };
+  'log': { message: string; type: 'action' | 'event' | 'chat' | 'system' | 'quote' };
   'entity:spawned': { entity: EntityId };
   'entity:despawned': { entity: EntityId };
   'behavior:changed': { entity: EntityId; from: string; to: string };

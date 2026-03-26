@@ -19,7 +19,7 @@ import type { CharacterDef } from '@/simulation/data/characters';
 import { SIM_CLOCK, TILEMAP, CAMPAIGN } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,
-  pipelineSystem, setupLogBridge,
+  pipelineSystem, quoteSystem, setupLogBridge,
   workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler,
 } from '@/simulation/systems';
 import { PIPELINE_STEPS, CAMPAIGN_VALUE } from '@/simulation/data/production';
@@ -205,6 +205,7 @@ export function createWorld(
   world.addSystem('behavior', behaviorSystem, 10);
   world.addSystem('movement', movementSystem, 20);
   world.addSystem('pipeline', pipelineSystem, 30);
+  world.addSystem('quotes', quoteSystem, 35);
   world.addSystem('snapshot', snapshotSystem, 100);
 
   return { world, personEntities, furnitureEntities, deskEntities };

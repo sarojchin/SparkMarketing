@@ -33,7 +33,7 @@ export interface PersonSnapshot {
 
 export interface LogEntry {
   message: string;
-  type: 'action' | 'event' | 'chat' | 'system';
+  type: 'action' | 'event' | 'chat' | 'system' | 'quote';
   time: string;
   tick: number;
 }
