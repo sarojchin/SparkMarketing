@@ -31,6 +31,7 @@ export interface PersonSnapshot {
   currentStep: number;
   totalSteps: number;
   morale: number;
+  energy: number;
   attributes: AttributeGrades;
 }
 

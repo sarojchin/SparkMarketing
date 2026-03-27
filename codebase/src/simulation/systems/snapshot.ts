@@ -10,7 +10,7 @@
 
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
-import type { Position, Appearance, BehaviorState, Identity, PipelineState, Morale, Attributes } from '@/simulation/components';
+import type { Position, Appearance, BehaviorState, Identity, PipelineState, Morale, Energy, Attributes } from '@/simulation/components';
 import { SIM_CLOCK, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
 import { useSimStore } from '@/hooks/useSimStore';
 import type { PersonSnapshot } from '@/hooks/useSimStore';
@@ -29,6 +29,7 @@ export function snapshotSystem(world: World, dt: number): void {
   const identities = world.getStore<Identity>(COMPONENTS.IDENTITY);
   const pipelines = world.getStore<PipelineState>(COMPONENTS.PIPELINE_STATE);
   const morales = world.getStore<Morale>(COMPONENTS.MORALE);
+  const energies = world.getStore<Energy>(COMPONENTS.ENERGY);
   const attributeStore = world.getStore<Attributes>(COMPONENTS.ATTRIBUTES);
 
   const DEFAULT_ATTRS = { persistence: 'C' as const, empathy: 'C' as const, genius: 'C' as const, speed: 'C' as const };
@@ -62,6 +63,7 @@ export function snapshotSystem(world: World, dt: number): void {
       currentStep: pipe?.currentStep ?? 0,
       totalSteps: pipe?.totalSteps ?? 0,
       morale: morales.get(entity)?.current ?? 50,
+      energy: energies.get(entity)?.current ?? 100,
       attributes: attributeStore.get(entity)?.grades ?? DEFAULT_ATTRS,
     });
   }

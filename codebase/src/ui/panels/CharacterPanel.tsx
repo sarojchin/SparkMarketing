@@ -6,6 +6,13 @@ import {
 
 const ATTR_ORDER: AttributeName[] = ['persistence', 'empathy', 'genius', 'speed'];
 
+function energyColor(value: number): string {
+  if (value < 20) return '#dc2626'; // red
+  if (value < 40) return '#ea580c'; // orange
+  if (value < 60) return '#ca8a04'; // yellow
+  return '#2563eb';                  // blue
+}
+
 export function CharacterPanel() {
   const selectedEntity = useSimStore((s) => s.selectedEntity);
   const people = useSimStore((s) => s.people);
@@ -66,31 +73,54 @@ export function CharacterPanel() {
         })}
       </div>
 
-      {/* Morale */}
-      <div className="px-2.5 py-2 border-t border-sim-border">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
-            Morale
-          </span>
-          <span
-            className="text-[6px] font-pixel"
-            style={{ color: moraleRange.color }}
-          >
-            {moraleRange.label}
-          </span>
+      {/* Morale & Energy */}
+      <div className="px-2.5 py-2 border-t border-sim-border space-y-2">
+        {/* Morale */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
+              Morale
+            </span>
+            <span
+              className="text-[6px] font-pixel"
+              style={{ color: moraleRange.color }}
+            >
+              {moraleRange.label}
+            </span>
+          </div>
+          <div className="w-full h-[6px] rounded-sm overflow-hidden" style={{ backgroundColor: '#e8e4dd' }}>
+            <div
+              className="h-full rounded-sm transition-all duration-300"
+              style={{
+                width: `${Math.min(100, person.morale)}%`,
+                backgroundColor: moraleRange.color,
+              }}
+            />
+          </div>
+          <div className="text-[7px] font-pixel text-sim-text text-right mt-0.5">
+            {Math.round(person.morale)}
+          </div>
         </div>
-        {/* Bar */}
-        <div className="w-full h-[6px] rounded-sm overflow-hidden" style={{ backgroundColor: '#e8e4dd' }}>
-          <div
-            className="h-full rounded-sm transition-all duration-300"
-            style={{
-              width: `${Math.min(100, person.morale)}%`,
-              backgroundColor: moraleRange.color,
-            }}
-          />
-        </div>
-        <div className="text-[7px] font-pixel text-sim-text text-right mt-0.5">
-          {Math.round(person.morale)}
+
+        {/* Energy */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
+              Energy
+            </span>
+            <span className="text-[6px] font-pixel" style={{ color: energyColor(person.energy) }}>
+              {Math.round(person.energy)}%
+            </span>
+          </div>
+          <div className="w-full h-[6px] rounded-sm overflow-hidden" style={{ backgroundColor: '#e8e4dd' }}>
+            <div
+              className="h-full rounded-sm transition-all duration-300"
+              style={{
+                width: `${Math.min(100, person.energy)}%`,
+                backgroundColor: energyColor(person.energy),
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
