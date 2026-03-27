@@ -12,7 +12,7 @@ import type {
   Position, Facing, Appearance, Animation, StatusIndicator,
   Identity, BehaviorState, Energy, Morale, Skills,
   DeskAssignment, Interactable, FurnitureTag, BehaviorWeights,
-  PipelineState,
+  PipelineState, Attributes,
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
@@ -182,6 +182,10 @@ export function createWorld(
 
     world.getStore<BehaviorWeights>(COMPONENTS.BEHAVIOR_WEIGHTS).set(entity, {
       weights: { ...charDef.behaviorWeights },
+    });
+
+    world.getStore<Attributes>(COMPONENTS.ATTRIBUTES).set(entity, {
+      grades: { ...charDef.attributes },
     });
 
     // Desk assignment

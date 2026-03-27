@@ -13,6 +13,7 @@ import { TeamPanel } from '@/ui/panels/TeamPanel';
 import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
 import { PipelinePanel } from '@/ui/panels/PipelinePanel';
+import { CharacterPanel } from '@/ui/panels/CharacterPanel';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -110,6 +111,15 @@ export default function App() {
     useSimStore.getState().setHoveredEntity(entity);
   }, []);
 
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const renderer = rendererRef.current;
+    const world = worldRef.current;
+    if (!renderer || !world) return;
+
+    const entity = renderer.entityAtScreen(world, e.clientX, e.clientY);
+    useSimStore.getState().setSelectedEntity(entity);
+  }, []);
+
   const handleMouseLeave = useCallback(() => {
     useSimStore.getState().setHoveredEntity(null);
   }, []);
@@ -124,10 +134,12 @@ export default function App() {
           style={{ imageRendering: 'pixelated' }}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onClick={handleClick}
         />
         <HUD />
         <Tooltip x={mousePos.x} y={mousePos.y} />
         <PipelinePanel />
+        <CharacterPanel />
       </div>
 
       {/* Bottom panel */}

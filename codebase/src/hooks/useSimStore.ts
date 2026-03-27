@@ -14,6 +14,7 @@
 import { create } from 'zustand';
 import type { EntityId } from '@/ecs';
 import type { TileData, AgentState } from '@/simulation/components';
+import type { AttributeGrades } from '@/simulation/data/attributes';
 
 export interface PersonSnapshot {
   entity: EntityId;
@@ -29,6 +30,8 @@ export interface PersonSnapshot {
   phase: string;
   currentStep: number;
   totalSteps: number;
+  morale: number;
+  attributes: AttributeGrades;
 }
 
 export interface LogEntry {

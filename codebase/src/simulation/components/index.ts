@@ -120,6 +120,14 @@ export interface BehaviorWeights {
   weights: Record<string, number>; // behavior name -> probability weight
 }
 
+// --- Attributes ---
+
+import type { AttributeGrades } from '@/simulation/data/attributes';
+
+export interface Attributes {
+  grades: AttributeGrades;
+}
+
 // --- Production Pipeline ---
 
 export interface PipelineState {
@@ -179,4 +187,5 @@ export const COMPONENTS = {
   BEHAVIOR_WEIGHTS: 'behaviorWeights',
   PIPELINE_STATE: 'pipelineState',
   SPEECH_BUBBLE: 'speechBubble',
+  ATTRIBUTES: 'attributes',
 } as const;

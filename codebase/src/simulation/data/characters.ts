@@ -1,11 +1,13 @@
 /**
  * Character Definitions
- * 
+ *
  * These are templates — the factory function reads these
  * and spawns proper ECS entities with all required components.
- * 
+ *
  * To add a new employee: add an entry here. That's it.
  */
+
+import type { AttributeGrades } from '@/simulation/data/attributes';
 
 export interface CharacterDef {
   id: string;
@@ -19,6 +21,7 @@ export interface CharacterDef {
     skin: string;
   };
   skills: Record<string, number>;
+  attributes: AttributeGrades;
   behaviorWeights: {
     work: number;
     coffee: number;
@@ -41,6 +44,7 @@ export const SOLO_FOUNDER: CharacterDef[] = [
       skin: '#deb887',
     },
     skills: { hustle: 70, design: 50, writing: 60, sales: 55 },
+    attributes: { persistence: 'S', empathy: 'B', genius: 'A', speed: 'A' },
     behaviorWeights: {
       work: 0.75,
       coffee: 0.15,
@@ -64,6 +68,7 @@ export const SPARK_TEAM: CharacterDef[] = [
       skin: '#deb887',
     },
     skills: { strategy: 80, communication: 90, design: 40 },
+    attributes: { persistence: 'B', empathy: 'S', genius: 'B', speed: 'C' },
     behaviorWeights: {
       work: 0.15,
       coffee: 0.15,
@@ -84,6 +89,7 @@ export const SPARK_TEAM: CharacterDef[] = [
       skin: '#d2a679',
     },
     skills: { writing: 75, seo: 65, strategy: 50 },
+    attributes: { persistence: 'A', empathy: 'B', genius: 'B', speed: 'A' },
     behaviorWeights: {
       work: 0.55,
       coffee: 0.15,
@@ -104,6 +110,7 @@ export const SPARK_TEAM: CharacterDef[] = [
       skin: '#f0c8a0',
     },
     skills: { analytics: 80, ads: 85, copywriting: 55 },
+    attributes: { persistence: 'A', empathy: 'C', genius: 'A', speed: 'S' },
     behaviorWeights: {
       work: 0.60,
       coffee: 0.15,
@@ -124,6 +131,7 @@ export const SPARK_TEAM: CharacterDef[] = [
       skin: '#8B6914',
     },
     skills: { design: 85, branding: 70, illustration: 60 },
+    attributes: { persistence: 'B', empathy: 'A', genius: 'S', speed: 'B' },
     behaviorWeights: {
       work: 0.50,
       coffee: 0.20,
