@@ -17,7 +17,7 @@ import type { World, EntityId } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
 import type {
   Position, Appearance, BehaviorState, PathFollower, StatusIndicator,
-  Identity, Interactable, DeskAssignment, BehaviorWeights,
+  Identity, Interactable, DeskAssignment, BehaviorWeights, AssignedTask,
 } from '@/simulation/components';
 import { SIM_CLOCK, TILEMAP } from '@/simulation/resources';
 import { findPath } from '@/utils/pathfinding';
@@ -47,6 +47,7 @@ export function behaviorSystem(world: World, dt: number): void {
   const paths = world.getStore<PathFollower>(COMPONENTS.PATH_FOLLOWER);
   const statusIndicators = world.getStore<StatusIndicator>(COMPONENTS.STATUS_INDICATOR);
   const weightsStore = world.getStore<BehaviorWeights>(COMPONENTS.BEHAVIOR_WEIGHTS);
+  const assignedTasks = world.getStore<AssignedTask>(COMPONENTS.ASSIGNED_TASK);
 
   const entities = world.query(COMPONENTS.BEHAVIOR, COMPONENTS.POSITION, COMPONENTS.IDENTITY);
 
@@ -54,6 +55,16 @@ export function behaviorSystem(world: World, dt: number): void {
     const beh = behaviors.get(entity)!;
     const pos = positions.get(entity)!;
     const id = identities.get(entity)!;
+
+    // No task assigned → stay idle
+    const task = assignedTasks.get(entity);
+    if (!task?.taskKey) {
+      if (beh.current !== 'idle') {
+        beh.current = 'idle';
+        beh.timer = 0;
+      }
+      continue;
+    }
 
     // Don't tick timer if currently walking (movement system handles transition)
     if (paths.has(entity) && paths.get(entity)!.path.length > 0) continue;
