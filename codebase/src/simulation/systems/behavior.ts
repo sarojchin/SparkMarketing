@@ -138,7 +138,12 @@ export function workHandler(ctx: BehaviorContext): void {
     const deskPos = world.getStore<Position>(COMPONENTS.POSITION).get(desk.deskEntity);
     if (deskPos) {
       const target = { x: deskPos.x + desk.seatOffset.x, y: deskPos.y + desk.seatOffset.y };
-      navigateTo(world, entity, pos, target.x, target.y, tilemap.tiles, 'working');
+      const atDesk = Math.round(pos.x) === target.x && Math.round(pos.y) === target.y;
+      if (atDesk) {
+        beh.current = 'working';
+      } else {
+        navigateTo(world, entity, pos, target.x, target.y, tilemap.tiles, 'working');
+      }
     }
   }
 
