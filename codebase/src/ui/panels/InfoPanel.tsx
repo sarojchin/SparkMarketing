@@ -9,7 +9,7 @@ function formatTime(minutes: number): string {
 }
 
 export function InfoPanel() {
-  const { people, simMinutes, simDay, speed, campaignsShipped, grossIncome, bank } = useSimStore((s) => ({
+  const { people, simMinutes, simDay, speed, campaignsShipped, grossIncome, bank, totalCallsMade, totalEmailsSent } = useSimStore((s) => ({
     people: s.people,
     simMinutes: s.simMinutes,
     simDay: s.simDay,
@@ -17,6 +17,8 @@ export function InfoPanel() {
     campaignsShipped: s.campaignsShipped,
     grossIncome: s.grossIncome,
     bank: s.bank,
+    totalCallsMade: s.totalCallsMade,
+    totalEmailsSent: s.totalEmailsSent,
   }));
 
   const working = people.filter((p) => p.state === 'working').length;
@@ -36,6 +38,8 @@ export function InfoPanel() {
           ['Time', formatTime(simMinutes)],
           ['Speed', `${speed}x`],
           ['Campaigns', String(campaignsShipped)],
+          ['📞 Calls', String(totalCallsMade)],
+          ['📧 Emails', String(totalEmailsSent)],
           ['Bank', `$${bank.toLocaleString()}`],
         ].map(([label, value]) => (
           <div key={label} className="flex justify-between text-[8px] font-pixel">

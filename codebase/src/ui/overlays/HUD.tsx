@@ -10,15 +10,11 @@ function formatTime(minutes: number): string {
 }
 
 export function HUD() {
-  const { simMinutes, simDay, speed, setSpeed, grossIncome, bank, totalCallsMade, totalEmailsSent } = useSimStore((s) => ({
+  const { simMinutes, simDay, speed, setSpeed } = useSimStore((s) => ({
     simMinutes: s.simMinutes,
     simDay: s.simDay,
     speed: s.speed,
     setSpeed: s.setSpeed,
-    grossIncome: s.grossIncome,
-    bank: s.bank,
-    totalCallsMade: s.totalCallsMade,
-    totalEmailsSent: s.totalEmailsSent,
   }));
 
   const day = DAYS[simDay % 5] || 'Monday';
@@ -36,13 +32,10 @@ export function HUD() {
         </div>
       </div>
 
-      {/* Top right — finances + clock + speed */}
+      {/* Top right — clock + speed */}
       <div className="fixed top-3 right-3.5 z-10 text-right">
-        <div className="text-[9px] font-pixel text-sim-green tracking-[1px]">
-          ${bank.toLocaleString()}
-        </div>
-        <div className="text-[7px] font-pixel text-sim-textDim mt-0.5">
-          Gross: ${grossIncome.toLocaleString()} · 📞 {totalCallsMade} · 📧 {totalEmailsSent} · {formatTime(simMinutes)} · {day}
+        <div className="text-[7px] font-pixel text-sim-textDim">
+          {formatTime(simMinutes)} · {day}
         </div>
         <div className="flex gap-0.5 mt-1.5 justify-end">
           {SPEEDS.map((s) => (
