@@ -34,6 +34,7 @@ export interface PersonSnapshot {
   energy: number;
   attributes: AttributeGrades;
   assignedTaskKey: string | null;
+  taskProgress: number;
   callsMade: number;
   emailsSent: number;
   campaignsCreated: number;

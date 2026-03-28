@@ -68,6 +68,7 @@ export function snapshotSystem(world: World, dt: number): void {
       energy: energies.get(entity)?.current ?? 100,
       attributes: attributeStore.get(entity)?.grades ?? DEFAULT_ATTRS,
       assignedTaskKey: assignedTasks.get(entity)?.taskKey ?? null,
+      taskProgress: assignedTasks.get(entity)?.progress ?? 0,
       callsMade: productionCounters.get(entity)?.callsMade ?? 0,
       emailsSent: productionCounters.get(entity)?.emailsSent ?? 0,
       campaignsCreated: productionCounters.get(entity)?.campaignsCreated ?? 0,
