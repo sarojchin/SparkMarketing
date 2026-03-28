@@ -5,3 +5,4 @@ export { snapshotSystem } from './snapshot';
 export { setupLogBridge } from './log-bridge';
 export { pipelineSystem } from './production';
 export { quoteSystem } from './quotes';
+export { taskProductionSystem } from './taskProduction';

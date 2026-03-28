@@ -128,6 +128,19 @@ export interface Attributes {
   grades: AttributeGrades;
 }
 
+// --- Task Assignment ---
+
+export interface AssignedTask {
+  taskKey: string | null;  // 'outreach_calls' | 'outreach_emails' | 'content_creation' | null
+  progress: number;        // 0→1 accumulator, resets on each unit produced
+}
+
+export interface ProductionCounters {
+  callsMade: number;
+  emailsSent: number;
+  campaignsCreated: number;
+}
+
 // --- Production Pipeline ---
 
 export interface PipelineState {
@@ -188,4 +201,6 @@ export const COMPONENTS = {
   PIPELINE_STATE: 'pipelineState',
   SPEECH_BUBBLE: 'speechBubble',
   ATTRIBUTES: 'attributes',
+  ASSIGNED_TASK: 'assignedTask',
+  PRODUCTION_COUNTERS: 'productionCounters',
 } as const;

@@ -33,6 +33,10 @@ export interface PersonSnapshot {
   morale: number;
   energy: number;
   attributes: AttributeGrades;
+  assignedTaskKey: string | null;
+  callsMade: number;
+  emailsSent: number;
+  campaignsCreated: number;
 }
 
 export interface LogEntry {
@@ -69,6 +73,14 @@ interface SimState {
   // Player directive
   directive: string | null; // assigned phase or null
 
+  // Task assignments (pending UI → ECS sync)
+  pendingTasks: Array<{ entity: number; taskKey: string | null }>;
+
+  // Global production counters (aggregated across all characters)
+  totalCallsMade: number;
+  totalEmailsSent: number;
+  totalCampaignsCreated: number;
+
   // Log
   log: LogEntry[];
 
@@ -83,6 +95,9 @@ interface SimState {
   syncCampaign: (campaignsShipped: number, grossIncome: number, bank: number) => void;
   setDirective: (phase: string | null) => void;
   syncDirective: (phase: string | null) => void;
+  assignEntityTask: (entity: number, taskKey: string | null) => void;
+  clearPendingTasks: () => void;
+  syncTotalCounters: (calls: number, emails: number, campaigns: number) => void;
   addLog: (message: string, type: LogEntry['type']) => void;
 }
 
@@ -113,6 +128,12 @@ export const useSimStore = create<SimState>((set, get) => ({
 
   directive: null,
 
+  pendingTasks: [],
+
+  totalCallsMade: 0,
+  totalEmailsSent: 0,
+  totalCampaignsCreated: 0,
+
   log: [],
 
   setSpeed: (speed) => set({ speed }),
@@ -132,6 +153,18 @@ export const useSimStore = create<SimState>((set, get) => ({
   setDirective: (phase) => set({ directive: phase }),
 
   syncDirective: (phase) => set({ directive: phase }),
+
+  assignEntityTask: (entity, taskKey) => set((state) => ({
+    pendingTasks: [...state.pendingTasks, { entity, taskKey }],
+  })),
+
+  clearPendingTasks: () => set({ pendingTasks: [] }),
+
+  syncTotalCounters: (calls, emails, campaigns) => set({
+    totalCallsMade: calls,
+    totalEmailsSent: emails,
+    totalCampaignsCreated: campaigns,
+  }),
 
   advanceTime: (dt) => {
     const state = get();

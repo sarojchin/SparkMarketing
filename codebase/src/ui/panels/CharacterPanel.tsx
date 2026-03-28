@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useSimStore } from '@/hooks/useSimStore';
 import {
   ATTRIBUTE_LABELS, GRADE_COLORS, getMoraleRange,
   type AttributeName,
 } from '@/simulation/data/attributes';
+import { TASK_DEFS } from '@/simulation/data/production';
 
 const ATTR_ORDER: AttributeName[] = ['persistence', 'empathy', 'genius', 'speed'];
 
@@ -17,6 +19,8 @@ export function CharacterPanel() {
   const selectedEntity = useSimStore((s) => s.selectedEntity);
   const people = useSimStore((s) => s.people);
   const setSelectedEntity = useSimStore((s) => s.setSelectedEntity);
+  const assignEntityTask = useSimStore((s) => s.assignEntityTask);
+  const [outreachOpen, setOutreachOpen] = useState(true);
 
   if (selectedEntity === null) return null;
 
@@ -123,6 +127,119 @@ export function CharacterPanel() {
           </div>
         </div>
       </div>
+
+      {/* Tasks */}
+      <div className="px-2.5 py-2 border-t border-sim-border space-y-1">
+        <div className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
+          Tasks
+        </div>
+
+        {/* Outreach group */}
+        <button
+          onClick={() => setOutreachOpen(!outreachOpen)}
+          className="flex items-center gap-1 w-full text-left"
+        >
+          <span className="text-[7px] text-sim-textDim">{outreachOpen ? '▾' : '▸'}</span>
+          <span className="text-[7px] font-pixel text-sim-text">Outreach</span>
+        </button>
+        {outreachOpen && (
+          <div className="ml-3 space-y-0.5">
+            <TaskButton
+              taskKey="outreach_emails"
+              activeTaskKey={person.assignedTaskKey}
+              entity={person.entity}
+              onAssign={assignEntityTask}
+            />
+            <TaskButton
+              taskKey="outreach_calls"
+              activeTaskKey={person.assignedTaskKey}
+              entity={person.entity}
+              onAssign={assignEntityTask}
+            />
+          </div>
+        )}
+
+        {/* Content Creation */}
+        <TaskButton
+          taskKey="content_creation"
+          activeTaskKey={person.assignedTaskKey}
+          entity={person.entity}
+          onAssign={assignEntityTask}
+        />
+
+        {/* Clear task */}
+        {person.assignedTaskKey && (
+          <button
+            onClick={() => assignEntityTask(person.entity, null)}
+            className="text-[6px] font-pixel text-sim-textDim hover:text-red-500 transition-colors mt-1"
+          >
+            ✕ Clear Task
+          </button>
+        )}
+      </div>
+
+      {/* Production Report */}
+      <div className="px-2.5 py-2 border-t border-sim-border space-y-1">
+        <div className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
+          Production
+        </div>
+        <div className="space-y-0.5">
+          <CounterRow icon="📞" label="Calls Made" value={person.callsMade} />
+          <CounterRow icon="📧" label="Emails Sent" value={person.emailsSent} />
+          <CounterRow icon="🎨" label="Campaigns" value={person.campaignsCreated} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskButton({
+  taskKey,
+  activeTaskKey,
+  entity,
+  onAssign,
+}: {
+  taskKey: string;
+  activeTaskKey: string | null;
+  entity: number;
+  onAssign: (entity: number, taskKey: string | null) => void;
+}) {
+  const def = TASK_DEFS[taskKey];
+  if (!def) return null;
+
+  const isActive = activeTaskKey === taskKey;
+
+  return (
+    <button
+      onClick={() => onAssign(entity, isActive ? null : taskKey)}
+      className={`flex items-center gap-1.5 w-full text-left py-0.5 px-1 rounded transition-colors ${
+        isActive
+          ? 'bg-green-50 border border-green-300'
+          : 'hover:bg-sim-bg border border-transparent'
+      }`}
+    >
+      <span className="text-[8px]">{def.icon}</span>
+      <span className={`text-[7px] font-pixel ${isActive ? 'text-sim-green' : 'text-sim-text'}`}>
+        {def.label}
+      </span>
+      {isActive && (
+        <span className="text-[6px] font-pixel text-sim-green ml-auto animate-pulse">
+          active
+        </span>
+      )}
+    </button>
+  );
+}
+
+function CounterRow({ icon, label, value }: { icon: string; label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[7px] font-pixel text-sim-text">
+        {icon} {label}
+      </span>
+      <span className="text-[8px] font-pixel font-bold text-sim-text">
+        {value}
+      </span>
     </div>
   );
 }

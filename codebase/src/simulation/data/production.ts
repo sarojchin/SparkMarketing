@@ -126,6 +126,52 @@ export const PIPELINE_STEPS: PipelineStepDef[] = [
 /** Revenue per campaign (solo founder pricing) */
 export const CAMPAIGN_VALUE = 5000;
 
+// --- Independent Task Definitions ---
+
+export interface TaskDef {
+  key: string;
+  label: string;
+  icon: string;
+  /** Which counter field to increment on ProductionCounters */
+  counterField: 'callsMade' | 'emailsSent' | 'campaignsCreated';
+  /**
+   * Progress per speed-scaled second while working.
+   * 1 sim-minute = 0.5 real seconds at 1x.
+   * Calls/Emails: 1 per sim-minute of work → rate = 2.0
+   * Campaigns: 1 per 3 sim-days of work → 1440 sim-minutes → rate = 1/720
+   */
+  ratePerSecond: number;
+  /** Log message when a unit is produced */
+  completeLog: string;
+}
+
+export const TASK_DEFS: Record<string, TaskDef> = {
+  outreach_calls: {
+    key: 'outreach_calls',
+    label: 'Cold Calls',
+    icon: '📞',
+    counterField: 'callsMade',
+    ratePerSecond: 2.0,
+    completeLog: 'made a cold call',
+  },
+  outreach_emails: {
+    key: 'outreach_emails',
+    label: 'Emails',
+    icon: '📧',
+    counterField: 'emailsSent',
+    ratePerSecond: 2.0,
+    completeLog: 'sent an outreach email',
+  },
+  content_creation: {
+    key: 'content_creation',
+    label: 'Content Creation',
+    icon: '🎨',
+    counterField: 'campaignsCreated',
+    ratePerSecond: 1 / 720,
+    completeLog: 'finished a campaign!',
+  },
+};
+
 // Keep old exports for backwards compat with SPARK_TEAM if ever needed
 export const ROLE_TASKS: Record<string, string[]> = {
   'Founder': PIPELINE_STEPS.map(s => s.name),

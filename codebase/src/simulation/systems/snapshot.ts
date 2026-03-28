@@ -10,7 +10,7 @@
 
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
-import type { Position, Appearance, BehaviorState, Identity, PipelineState, Morale, Energy, Attributes } from '@/simulation/components';
+import type { Position, Appearance, BehaviorState, Identity, PipelineState, Morale, Energy, Attributes, AssignedTask, ProductionCounters } from '@/simulation/components';
 import { SIM_CLOCK, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
 import { useSimStore } from '@/hooks/useSimStore';
 import type { PersonSnapshot } from '@/hooks/useSimStore';
@@ -31,6 +31,8 @@ export function snapshotSystem(world: World, dt: number): void {
   const morales = world.getStore<Morale>(COMPONENTS.MORALE);
   const energies = world.getStore<Energy>(COMPONENTS.ENERGY);
   const attributeStore = world.getStore<Attributes>(COMPONENTS.ATTRIBUTES);
+  const assignedTasks = world.getStore<AssignedTask>(COMPONENTS.ASSIGNED_TASK);
+  const productionCounters = world.getStore<ProductionCounters>(COMPONENTS.PRODUCTION_COUNTERS);
 
   const DEFAULT_ATTRS = { persistence: 'C' as const, empathy: 'C' as const, genius: 'C' as const, speed: 'C' as const };
 
@@ -65,7 +67,19 @@ export function snapshotSystem(world: World, dt: number): void {
       morale: morales.get(entity)?.current ?? 50,
       energy: energies.get(entity)?.current ?? 100,
       attributes: attributeStore.get(entity)?.grades ?? DEFAULT_ATTRS,
+      assignedTaskKey: assignedTasks.get(entity)?.taskKey ?? null,
+      callsMade: productionCounters.get(entity)?.callsMade ?? 0,
+      emailsSent: productionCounters.get(entity)?.emailsSent ?? 0,
+      campaignsCreated: productionCounters.get(entity)?.campaignsCreated ?? 0,
     });
+  }
+
+  // Aggregate production counters across all entities
+  let totalCalls = 0, totalEmails = 0, totalCampaigns = 0;
+  for (const p of people) {
+    totalCalls += p.callsMade;
+    totalEmails += p.emailsSent;
+    totalCampaigns += p.campaignsCreated;
   }
 
   // Sync people + clock + campaign state to Zustand
@@ -75,6 +89,7 @@ export function snapshotSystem(world: World, dt: number): void {
   store.updatePeople(people);
   store.syncClock(clock.tick, clock.simMinutes, clock.simDay, clock.speed);
   store.syncCampaign(campaign.campaignsShipped, campaign.grossIncome, campaign.bank);
+  store.syncTotalCounters(totalCalls, totalEmails, totalCampaigns);
 
   const directive = world.getResource(PLAYER_DIRECTIVE);
   store.syncDirective(directive.assignedPhase);

@@ -12,14 +12,14 @@ import type {
   Position, Facing, Appearance, Animation, StatusIndicator,
   Identity, BehaviorState, Energy, Morale, Skills,
   DeskAssignment, Interactable, FurnitureTag, BehaviorWeights,
-  PipelineState, Attributes,
+  PipelineState, Attributes, AssignedTask, ProductionCounters,
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
 import { SIM_CLOCK, TILEMAP, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,
-  pipelineSystem, quoteSystem, setupLogBridge,
+  pipelineSystem, quoteSystem, taskProductionSystem, setupLogBridge,
   workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler,
 } from '@/simulation/systems';
 import { PIPELINE_STEPS, CAMPAIGN_VALUE } from '@/simulation/data/production';
@@ -188,6 +188,17 @@ export function createWorld(
       grades: { ...charDef.attributes },
     });
 
+    world.getStore<AssignedTask>(COMPONENTS.ASSIGNED_TASK).set(entity, {
+      taskKey: null,
+      progress: 0,
+    });
+
+    world.getStore<ProductionCounters>(COMPONENTS.PRODUCTION_COUNTERS).set(entity, {
+      callsMade: 0,
+      emailsSent: 0,
+      campaignsCreated: 0,
+    });
+
     // Desk assignment
     if (spawn.deskIndex !== undefined && deskEntities[spawn.deskIndex]) {
       world.getStore<DeskAssignment>(COMPONENTS.DESK_ASSIGNMENT).set(entity, {
@@ -213,6 +224,7 @@ export function createWorld(
   world.addSystem('behavior', behaviorSystem, 10);
   world.addSystem('movement', movementSystem, 20);
   world.addSystem('pipeline', pipelineSystem, 30);
+  world.addSystem('taskProduction', taskProductionSystem, 31);
   world.addSystem('quotes', quoteSystem, 35);
   world.addSystem('snapshot', snapshotSystem, 100);
 

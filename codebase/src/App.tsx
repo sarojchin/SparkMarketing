@@ -4,6 +4,8 @@ import { createWorld } from '@/simulation/factory';
 import { STARTER_OFFICE_MAP } from '@/simulation/data/maps';
 import { SOLO_FOUNDER } from '@/simulation/data/characters';
 import { SIM_CLOCK, PLAYER_DIRECTIVE } from '@/simulation/resources';
+import { COMPONENTS } from '@/simulation/components';
+import type { AssignedTask } from '@/simulation/components';
 import { CanvasRenderer } from '@/renderer/CanvasRenderer';
 import { useSimStore } from '@/hooks/useSimStore';
 
@@ -64,10 +66,26 @@ export default function App() {
       }
     });
 
+    // Drain pending task assignments from UI into ECS
+    const unsubTasks = useSimStore.subscribe((state) => {
+      if (state.pendingTasks.length > 0 && worldRef.current) {
+        const taskStore = worldRef.current.getStore<AssignedTask>(COMPONENTS.ASSIGNED_TASK);
+        for (const { entity, taskKey } of state.pendingTasks) {
+          const existing = taskStore.get(entity);
+          if (existing) {
+            existing.taskKey = taskKey;
+            existing.progress = 0;
+          }
+        }
+        state.clearPendingTasks();
+      }
+    });
+
     return () => {
       window.removeEventListener('resize', handleResize);
       unsubSpeed();
       unsubDirective();
+      unsubTasks();
       cancelAnimationFrame(rafRef.current);
     };
   }, []);
