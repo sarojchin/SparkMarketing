@@ -63,6 +63,11 @@ export function behaviorSystem(world: World, dt: number): void {
         beh.current = 'idle';
         beh.timer = 0;
       }
+      const indicator = statusIndicators.get(entity);
+      if (indicator) {
+        indicator.color = '#f97316'; // orange for idle
+        indicator.pulse = false;
+      }
       continue;
     }
 
@@ -107,8 +112,8 @@ export function behaviorSystem(world: World, dt: number): void {
     const indicator = statusIndicators.get(entity);
     if (indicator) {
       const stateColors: Record<string, string> = {
-        working: '#4ade80',
-        idle: '#fbbf24',
+        working: '#4ade80',   // green
+        idle: '#f97316',      // orange
         walking: '#60a5fa',
         coffee: '#a78bfa',
         meeting: '#f472b6',
