@@ -17,6 +17,9 @@ import type { AssignedTask, ProductionCounters, BehaviorState, Identity } from '
 import { SIM_CLOCK } from '@/simulation/resources';
 import { TASK_DEFS } from '@/simulation/data/production';
 
+/** Track last known taskKey per entity to detect assignment changes */
+const lastTaskKey = new Map<number, string | null>();
+
 export function taskProductionSystem(world: World, dt: number): void {
   const clock = world.getResource(SIM_CLOCK);
   if (clock.speed === 0) return;
@@ -38,8 +41,21 @@ export function taskProductionSystem(world: World, dt: number): void {
 
   for (const entity of entities) {
     const task = tasks.get(entity)!;
-    const beh = behaviors.get(entity)!;
+    const id = identities.get(entity)!;
 
+    // Detect task assignment changes and log once
+    const prev = lastTaskKey.get(entity) ?? null;
+    if (task.taskKey !== prev) {
+      lastTaskKey.set(entity, task.taskKey);
+      if (task.taskKey) {
+        const def = TASK_DEFS[task.taskKey];
+        if (def) {
+          world.emit('log', { message: `${id.name} ${def.startLog}`, type: 'action' });
+        }
+      }
+    }
+
+    const beh = behaviors.get(entity)!;
     if (!task.taskKey) continue;
     if (beh.current !== 'working') continue;
 
@@ -47,18 +63,12 @@ export function taskProductionSystem(world: World, dt: number): void {
     if (!taskDef) continue;
 
     const counter = counters.get(entity)!;
-    const id = identities.get(entity)!;
 
     task.progress += taskDef.ratePerSecond * dtSeconds;
 
     while (task.progress >= 1.0) {
       task.progress -= 1.0;
       counter[taskDef.counterField]++;
-
-      world.emit('log', {
-        message: `${id.name} ${taskDef.completeLog} (${taskDef.icon} ${counter[taskDef.counterField]})`,
-        type: 'action',
-      });
     }
   }
 }

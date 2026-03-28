@@ -141,8 +141,8 @@ export interface TaskDef {
    * Campaigns: 1 per 3 sim-days of work → 1440 sim-minutes → rate = 1/720
    */
   ratePerSecond: number;
-  /** Log message when a unit is produced */
-  completeLog: string;
+  /** Log message when task is assigned */
+  startLog: string;
 }
 
 export const TASK_DEFS: Record<string, TaskDef> = {
@@ -152,7 +152,7 @@ export const TASK_DEFS: Record<string, TaskDef> = {
     icon: '📞',
     counterField: 'callsMade',
     ratePerSecond: 2.0,
-    completeLog: 'made a cold call',
+    startLog: 'has started cold calling.',
   },
   outreach_emails: {
     key: 'outreach_emails',
@@ -160,7 +160,7 @@ export const TASK_DEFS: Record<string, TaskDef> = {
     icon: '📧',
     counterField: 'emailsSent',
     ratePerSecond: 2.0,
-    completeLog: 'sent an outreach email',
+    startLog: 'has started sending outreach emails.',
   },
   content_creation: {
     key: 'content_creation',
@@ -168,7 +168,7 @@ export const TASK_DEFS: Record<string, TaskDef> = {
     icon: '🎨',
     counterField: 'campaignsCreated',
     ratePerSecond: 1 / 720,
-    completeLog: 'finished a campaign!',
+    startLog: 'has started working on content creation.',
   },
 };
 
