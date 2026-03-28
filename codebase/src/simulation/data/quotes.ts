@@ -69,7 +69,7 @@ export const quotesRegistry: Record<string, QuotesBank> = {
     ],
     doubt: [
       'Maybe I should get a real job. Nah. I\'m in too deep now.',
-      'If this doesn\'t work, at least I\'ll have a great story for my therapist.',
+      'If this doesn\'t work, at least I\'ll have a great story for my friends.',
       'Pretty sure I\'m insane for doing this. Pretty sure it\'s going to work though.',
       'My friends are sleeping. I\'m here building an empire. Or a very expensive hobby.',
     ],
