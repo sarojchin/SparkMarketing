@@ -16,6 +16,7 @@ import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
 import { PipelinePanel } from '@/ui/panels/PipelinePanel';
 import { CharacterPanel } from '@/ui/panels/CharacterPanel';
+import { OutreachPanel } from '@/ui/panels/OutreachPanel';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -165,8 +166,11 @@ export default function App() {
         <div className="w-[240px] border-r border-sim-border overflow-y-auto">
           <TeamPanel />
         </div>
-        <div className="w-[160px] border-r border-sim-border">
+        <div className="w-[140px] border-r border-sim-border">
           <InfoPanel />
+        </div>
+        <div className="w-[140px] border-r border-sim-border">
+          <OutreachPanel />
         </div>
         <div className="flex-1 overflow-y-auto">
           <LogPanel />
