@@ -95,6 +95,16 @@ interface SimState {
   // Log
   log: LogEntry[];
 
+  // Client acquisition popup
+  acquiredClient: {
+    name: string;
+    industry: string;
+    size: number;
+    project: string;
+  } | null;
+  notifyClientAcquired: (payload: { name: string; industry: string; size: number; project: string }) => void;
+  dismissClientAcquired: () => void;
+
   // Actions
   setSpeed: (speed: number) => void;
   setTilemap: (tiles: TileData[][], w: number, h: number) => void;
@@ -150,6 +160,12 @@ export const useSimStore = create<SimState>((set, get) => ({
   totalCampaignsCreated: 0,
 
   log: [],
+
+  acquiredClient: null,
+
+  notifyClientAcquired: (payload) => set({ acquiredClient: payload }),
+
+  dismissClientAcquired: () => set({ acquiredClient: null }),
 
   setSpeed: (speed) => set({ speed }),
 

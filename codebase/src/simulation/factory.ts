@@ -18,11 +18,11 @@ import type {
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
 import { STARTER_CLIENTS } from '@/simulation/data/clients';
-import { SIM_CLOCK, TILEMAP, CAMPAIGN, PLAYER_DIRECTIVE, CLIENT_ROSTER } from '@/simulation/resources';
+import { SIM_CLOCK, TILEMAP, CAMPAIGN, PLAYER_DIRECTIVE, CLIENT_ROSTER, CLIENT_ACQUISITION } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,
   pipelineSystem, quoteSystem, taskProductionSystem, setupLogBridge,
-  clientManagerSystem,
+  clientManagerSystem, clientAcquisitionSystem, setupClientAcquisitionBridge,
   workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler,
 } from '@/simulation/systems';
 import { PIPELINE_STEPS, CAMPAIGN_VALUE } from '@/simulation/data/production';
@@ -78,11 +78,17 @@ export function createWorld(
     maxClients: 10,
   });
 
+  world.setResource(CLIENT_ACQUISITION, {
+    lastThresholdProcessed: 0,
+    pendingResults: [],
+  });
+
   // Also push tilemap to Zustand for the renderer (reads from store)
   useSimStore.getState().setTilemap(mapDef.tiles, mapDef.width, mapDef.height);
 
   // --- Wire event bridges ---
   setupLogBridge(world);
+  setupClientAcquisitionBridge(world);
 
   // --- Register behaviors ---
   behaviorRegistry.register('work', workHandler);
@@ -258,6 +264,7 @@ export function createWorld(
   world.addSystem('taskProduction', taskProductionSystem, 31);
   world.addSystem('quotes', quoteSystem, 35);
   world.addSystem('clientManager', clientManagerSystem, 40);
+  world.addSystem('clientAcquisition', clientAcquisitionSystem, 41);
   world.addSystem('snapshot', snapshotSystem, 100);
 
   return { world, personEntities, furnitureEntities, deskEntities, clientEntities };
