@@ -122,23 +122,50 @@ The simulation runs on a custom ECS where:
 
 The ECS is completely isolated from React. The **snapshot system** syncs ECS state → Zustand store every 200ms. UI reads from Zustand, never from the World directly.
 
+### Component Categories
+
+**Spatial**: `Position` (x/y pixel), `TilePosition` (tileX/tileY), `Facing` (direction)
+
+**Visual**: `Appearance` (spriteType, colors, zIndex), `Animation` (frame, timer, speed, frameCount), `StatusIndicator` (color, visible, pulse), `SpeechBubble` (text, remaining, duration)
+
+**Identity**: `Identity` (name, role, department, shortLabel)
+
+**Employee State**: `BehaviorState` (current, timer, nextState, metadata), `Energy` (current/max, drainRate, rechargeRate), `Morale` (current 0–100), `Attributes` (grades: AttributeGrades)
+
+**Task / Production**: `AssignedTask` (taskKey, progress), `ProductionCounters` (callsMade, emailsSent, campaignsCreated), `PipelineState` (currentStep, stepProgress, stepName, phase, pipelineComplete)
+
+**Movement / AI**: `PathFollower` (path[], speed), `DeskAssignment` (deskEntity, seatOffset), `BehaviorWeights` (weights: Record<string, number>)
+
+**Furniture**: `Interactable` (type: sit/use/look, interactionPoint, inUseBy), `FurnitureTag`
+
+**Client**: `ClientTag` (query marker), `ClientIdentity` (name, industry, size), `ClientReputation` (score 0–100)
+
 ### Key Directories
 ```
 src/
-├── ecs/                    # Core ECS engine (World, ComponentStore, ResourceKey)
+├── ecs/                    # Core ECS engine (World, ComponentStore, ResourceKey, typed event bus)
 ├── simulation/
-│   ├── components/         # All component type definitions
-│   ├── data/               # Static game data (characters, maps, pipeline, attributes, quotes)
-│   ├── systems/            # All ECS systems (clock, behavior, movement, production, etc.)
+│   ├── components/         # All component type definitions + COMPONENTS name constants
+│   ├── data/               # Static game data (characters, maps, clients, pipeline, attributes, quotes)
+│   ├── systems/            # ECS tick systems + log-bridge event subscriber
+│   │   ├── clock.ts        # priority 1
+│   │   ├── behavior.ts     # priority 10
+│   │   ├── movement.ts     # priority 20
+│   │   ├── production.ts   # priority 30 (pipeline)
+│   │   ├── taskProduction.ts # priority 31
+│   │   ├── quotes.ts       # priority 35
+│   │   ├── clientManager.ts  # priority 40 (stub — counts entities only)
+│   │   ├── snapshot.ts     # priority 100
+│   │   └── log-bridge.ts   # event subscriber (not a tick system)
 │   ├── registries/         # Pluggable behavior handler registry
-│   ├── resources.ts        # Typed resource definitions (SimClock, Campaign, etc.)
-│   └── factory.ts          # World setup — spawns entities, registers systems
+│   ├── resources.ts        # Typed resource definitions
+│   └── factory.ts          # World setup — spawns entities, registers systems + resources
 ├── renderer/               # Canvas 2D rendering (tiles, sprites, speech bubbles)
-├── hooks/                  # Zustand store (useSimStore)
+├── hooks/                  # Zustand store (useSimStore) — read-only ECS bridge
 ├── ui/
 │   ├── overlays/           # HUD, Tooltip (floating over canvas)
-│   └── panels/             # Bottom bar panels (Team, Info, Outreach, Campaign, Log, Pipeline)
-└── utils/                  # Seeded PRNG, BFS pathfinding
+│   └── panels/             # Bottom bar panels (Pipeline, Character, Team, Info, Outreach, Log)
+└── utils/                  # Seeded PRNG (seed 12345), BFS pathfinding
 ```
 
 ### Systems (Run Order)
@@ -150,15 +177,30 @@ src/
 | 30 | pipeline | Sequential campaign pipeline (phase-gated) |
 | 31 | taskProduction | Independent task counters (calls, emails, campaigns) |
 | 35 | quotes | Flavor text speech bubbles |
+| 40 | clientManager | Syncs CLIENT_ROSTER.activeClients from actual client entities |
 | 100 | snapshot | Syncs ECS → Zustand every 200ms |
+| — | log-bridge | Event subscriber (not a tick system): forwards `log` events → Zustand |
 
 ### Resources
 | Key | Type | Purpose |
 |-----|------|---------|
 | SIM_CLOCK | SimClock | Time: speed, tick, simMinutes, simDay |
 | TILEMAP | TilemapResource | Map grid for rendering + pathfinding |
-| CAMPAIGN | Campaign | Revenue tracking: bank, gross income, campaigns shipped |
-| PLAYER_DIRECTIVE | PlayerDirective | Currently assigned phase (legacy, being superseded by per-entity tasks) |
+| CAMPAIGN | Campaign | Revenue tracking: bank, grossIncome, campaignsShipped, campaignValue |
+| PLAYER_DIRECTIVE | PlayerDirective | Assigned phase (legacy; being superseded by per-entity AssignedTask) |
+| CLIENT_ROSTER | ClientRoster | activeClients, totalClientsEver, maxClients |
+
+### Client Architecture
+
+Clients are ECS entities (not UI-side objects) spawned at world creation by `factory.ts`.
+
+**Static data**: `src/simulation/data/clients.ts` exports `STARTER_CLIENTS` — 3 pre-defined clients (GreenLeaf Organics, ByteWise Solutions, Urban Threads) with id, name, industry, size, reputation.
+
+**Components on a client entity**: `ClientTag` (query marker), `ClientIdentity` (name, industry, size), `ClientReputation` (score 0–100)
+
+**Resource**: `CLIENT_ROSTER` tracks { activeClients, totalClientsEver, maxClients }. `clientManager` system updates `activeClients` each tick by counting entities with `ClientTag`.
+
+**Current state**: Clients are spawned and queryable. `clientManager.ts` is a functional but minimal stub — it counts entities, nothing more. No acquisition funnel, billing, or satisfaction system exists yet.
 
 ### Data Flow
 ```
@@ -169,6 +211,27 @@ Player clicks UI (React)
   → Snapshot system syncs back to Zustand (every 200ms)
   → React re-renders from store
 ```
+
+### Event Bus
+
+The World exposes a typed event bus (`world.on` / `world.emit`). All events are defined in `WorldEvents` in `src/ecs/world.ts`.
+
+| Event | Payload | Emitted by |
+|-------|---------|------------|
+| `log` | `{ message, type: action\|event\|chat\|system\|quote }` | Any system |
+| `entity:spawned` | `{ entity }` | `world.spawn()` (automatic) |
+| `entity:despawned` | `{ entity }` | `world.despawn()` (automatic) |
+| `behavior:changed` | `{ entity, from, to }` | behavior system |
+| `client:acquired` | `{ entity, name }` | reserved — not yet fired |
+| `client:lost` | `{ entity, name, reason }` | reserved — not yet fired |
+
+`log-bridge` (`src/simulation/systems/log-bridge.ts`) is the only subscriber outside the ECS layer. It subscribes to `log` and pushes messages to `useSimStore.addLog()`.
+
+### Data-Driven Conventions
+
+- **Maps**: ASCII grids parsed by `parseAsciiMap()` in `src/simulation/data/maps.ts`. Tile codes: `W`=wall, `.`=floor, `R`=rug, `O`=door, `D`=desk, `C`=chair, `K`=coffee machine, `B`=whiteboard, `P`=plant, `S`=bookshelf, `L`=couch.
+- **PRNG**: Global `rng` in `src/utils/rng.ts`, seeded `12345`. Use `rng` (not `Math.random()`) in all simulation code for deterministic runs.
+- **Pathfinding**: BFS in `src/utils/pathfinding.ts`. Accepts optional `occupiedTiles: Set<string>` to route around currently-occupied tiles.
 
 ---
 
@@ -185,11 +248,11 @@ Player clicks UI (React)
 - [x] Morale and energy bars (displayed, but static — no drain/recharge yet)
 - [x] Flavor quotes with phase-specific categories
 - [x] Activity log with timestamps
-- [x] UI panels: HUD, Pipeline, Character, Team, Info, Outreach, Campaign, Log
+- [x] UI panels: HUD (overlay), Tooltip (hover overlay), Pipeline, Character, Team, Info, Outreach, Log
+- [~] Client entities (ECS entities with ClientTag/ClientIdentity/ClientReputation spawned at startup; clientManager keeps roster count; acquisition funnel not built)
 
 ## What's NOT Built Yet
 
-- [ ] **Client entities** — clients as ECS entities with name, reputation, demandingness
 - [ ] **Client acquisition funnel** — calls → responses → conversions → active clients
 - [ ] **Client review + payment cycle** — deliver campaign → review period → get paid
 - [ ] **Monthly expenses** — rent, utilities, salaries due monthly
@@ -203,6 +266,22 @@ Player clicks UI (React)
 - [ ] **Campaign quality system** — output quality varies by who works on it
 - [ ] **Save/load** — persist game state
 - [ ] **Notifications/popups** — toast system for milestone events
+
+---
+
+## Maintenance
+
+**This document must stay current.** Whenever an architectural change is made — new system, component, resource, UI panel, data file, behavior, or change to the data flow — CLAUDE.md must be updated to reflect it.
+
+### How to Update
+
+When making architecture changes, spawn a subagent with this task:
+1. Read the modified/added source files
+2. Read the current `CLAUDE.md`
+3. Identify exactly which section(s) are affected (systems table, resources table, component categories, client architecture, key directories, what works/not built, etc.)
+4. Apply targeted edits — do not rewrite sections that haven't changed
+
+This keeps updates minimal (low token cost per change) while ensuring the doc never drifts from the codebase.
 
 ---
 
