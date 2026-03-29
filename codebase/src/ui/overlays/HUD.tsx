@@ -34,7 +34,8 @@ export function HUD() {
 
       {/* Top right — clock + speed */}
       <div className="fixed top-3 right-3.5 z-10 text-right">
-        <div className="text-[7px] font-pixel text-sim-textDim">
+        <div className="text-[13px] font-pixel text-sim-text"
+          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
           {formatTime(simMinutes)} · {day}
         </div>
         <div className="flex gap-0.5 mt-1.5 justify-end">
