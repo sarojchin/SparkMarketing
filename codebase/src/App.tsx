@@ -17,6 +17,7 @@ import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
 import { PipelinePanel } from '@/ui/panels/PipelinePanel';
 import { CharacterPanel } from '@/ui/panels/CharacterPanel';
+import { ClientsPanel } from '@/ui/panels/ClientsPanel';
 import { OutreachPanel } from '@/ui/panels/OutreachPanel';
 
 export default function App() {
@@ -161,6 +162,7 @@ export default function App() {
         <ClientAcquisitionPopup />
         <PipelinePanel />
         <CharacterPanel />
+        <ClientsPanel />
       </div>
 
       {/* Bottom panel */}
