@@ -10,10 +10,10 @@
 
 import type { World } from '@/ecs';
 import { COMPONENTS } from '@/simulation/components';
-import type { Position, Appearance, BehaviorState, Identity, PipelineState, Morale, Energy, Attributes, AssignedTask, ProductionCounters } from '@/simulation/components';
-import { SIM_CLOCK, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
+import type { Position, Appearance, BehaviorState, Identity, PipelineState, Morale, Energy, Attributes, AssignedTask, ProductionCounters, ClientIdentity, ClientReputation } from '@/simulation/components';
+import { SIM_CLOCK, CAMPAIGN, PLAYER_DIRECTIVE, CLIENT_ROSTER } from '@/simulation/resources';
 import { useSimStore } from '@/hooks/useSimStore';
-import type { PersonSnapshot } from '@/hooks/useSimStore';
+import type { PersonSnapshot, ClientSnapshot } from '@/hooks/useSimStore';
 
 const SYNC_INTERVAL_MS = 200;
 let accumulator = 0;
@@ -83,11 +83,30 @@ export function snapshotSystem(world: World, dt: number): void {
     totalCampaigns += p.campaignsCreated;
   }
 
-  // Sync people + clock + campaign state to Zustand
+  // --- Client snapshots ---
+  const clientIdentities = world.getStore<ClientIdentity>(COMPONENTS.CLIENT_IDENTITY);
+  const clientReputations = world.getStore<ClientReputation>(COMPONENTS.CLIENT_REPUTATION);
+
+  const clients: ClientSnapshot[] = [];
+  for (const entity of world.query(COMPONENTS.CLIENT_TAG, COMPONENTS.CLIENT_IDENTITY)) {
+    const cid = clientIdentities.get(entity)!;
+    clients.push({
+      entity,
+      name: cid.name,
+      industry: cid.industry,
+      size: cid.size,
+      reputation: clientReputations.get(entity)?.score ?? 50,
+    });
+  }
+
+  // Sync people + clients + clock + campaign state to Zustand
   const clock = world.getResource(SIM_CLOCK);
   const campaign = world.getResource(CAMPAIGN);
+  const roster = world.getResource(CLIENT_ROSTER);
   const store = useSimStore.getState();
   store.updatePeople(people);
+  store.updateClients(clients);
+  store.syncClientRoster(roster.activeClients, roster.totalClientsEver, roster.maxClients);
   store.syncClock(clock.tick, clock.simMinutes, clock.simDay, clock.speed);
   store.syncCampaign(campaign.campaignsShipped, campaign.grossIncome, campaign.bank);
   store.syncTotalCounters(totalCalls, totalEmails, totalCampaigns);

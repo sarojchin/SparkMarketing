@@ -75,6 +75,8 @@ export interface WorldEvents {
   'entity:spawned': { entity: EntityId };
   'entity:despawned': { entity: EntityId };
   'behavior:changed': { entity: EntityId; from: string; to: string };
+  'client:acquired': { entity: EntityId; name: string };
+  'client:lost': { entity: EntityId; name: string; reason: string };
 }
 
 export type EventKey = keyof WorldEvents;

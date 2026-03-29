@@ -57,3 +57,13 @@ export interface PlayerDirective {
 }
 
 export const PLAYER_DIRECTIVE = new ResourceKey<PlayerDirective>('playerDirective');
+
+// --- Client Roster ---
+
+export interface ClientRoster {
+  activeClients: number;
+  totalClientsEver: number;
+  maxClients: number;
+}
+
+export const CLIENT_ROSTER = new ResourceKey<ClientRoster>('clientRoster');

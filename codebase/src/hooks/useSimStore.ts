@@ -40,6 +40,14 @@ export interface PersonSnapshot {
   campaignsCreated: number;
 }
 
+export interface ClientSnapshot {
+  entity: EntityId;
+  name: string;
+  industry: string;
+  size: number;
+  reputation: number;
+}
+
 export interface LogEntry {
   message: string;
   type: 'action' | 'event' | 'chat' | 'system' | 'quote';
@@ -61,6 +69,8 @@ interface SimState {
 
   // Entity snapshots (updated every N frames for UI)
   people: PersonSnapshot[];
+  clients: ClientSnapshot[];
+  activeClientCount: number;
 
   // UI
   selectedEntity: EntityId | null;
@@ -99,6 +109,8 @@ interface SimState {
   assignEntityTask: (entity: number, taskKey: string | null) => void;
   clearPendingTasks: () => void;
   syncTotalCounters: (calls: number, emails: number, campaigns: number) => void;
+  updateClients: (clients: ClientSnapshot[]) => void;
+  syncClientRoster: (active: number, total: number, max: number) => void;
   addLog: (message: string, type: LogEntry['type']) => void;
 }
 
@@ -119,6 +131,8 @@ export const useSimStore = create<SimState>((set, get) => ({
   mapHeight: 0,
 
   people: [],
+  clients: [],
+  activeClientCount: 0,
 
   selectedEntity: null,
   hoveredEntity: null,
@@ -166,6 +180,10 @@ export const useSimStore = create<SimState>((set, get) => ({
     totalEmailsSent: emails,
     totalCampaignsCreated: campaigns,
   }),
+
+  updateClients: (clients) => set({ clients }),
+
+  syncClientRoster: (active, _total, _max) => set({ activeClientCount: active }),
 
   advanceTime: (dt) => {
     const state = get();

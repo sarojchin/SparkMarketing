@@ -13,13 +13,16 @@ import type {
   Identity, BehaviorState, Energy, Morale, Skills,
   DeskAssignment, Interactable, FurnitureTag, BehaviorWeights,
   PipelineState, Attributes, AssignedTask, ProductionCounters,
+  ClientTag, ClientIdentity, ClientReputation,
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
-import { SIM_CLOCK, TILEMAP, CAMPAIGN, PLAYER_DIRECTIVE } from '@/simulation/resources';
+import { STARTER_CLIENTS } from '@/simulation/data/clients';
+import { SIM_CLOCK, TILEMAP, CAMPAIGN, PLAYER_DIRECTIVE, CLIENT_ROSTER } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,
   pipelineSystem, quoteSystem, taskProductionSystem, setupLogBridge,
+  clientManagerSystem,
   workHandler, coffeeHandler, chatHandler, whiteboardHandler, wanderHandler,
 } from '@/simulation/systems';
 import { PIPELINE_STEPS, CAMPAIGN_VALUE } from '@/simulation/data/production';
@@ -31,6 +34,7 @@ export interface WorldSetupResult {
   personEntities: Map<string, EntityId>;
   furnitureEntities: EntityId[];
   deskEntities: EntityId[];
+  clientEntities: Map<string, EntityId>;
 }
 
 export function createWorld(
@@ -66,6 +70,12 @@ export function createWorld(
 
   world.setResource(PLAYER_DIRECTIVE, {
     assignedPhase: null,
+  });
+
+  world.setResource(CLIENT_ROSTER, {
+    activeClients: 0,
+    totalClientsEver: 0,
+    maxClients: 10,
   });
 
   // Also push tilemap to Zustand for the renderer (reads from store)
@@ -219,6 +229,27 @@ export function createWorld(
     });
   }
 
+  // --- Spawn clients ---
+  const clientEntities = new Map<string, EntityId>();
+  for (const clientDef of STARTER_CLIENTS) {
+    const entity = world.spawn();
+    clientEntities.set(clientDef.id, entity);
+
+    world.getStore<ClientTag>(COMPONENTS.CLIENT_TAG).set(entity, { _brand: 'client' });
+    world.getStore<ClientIdentity>(COMPONENTS.CLIENT_IDENTITY).set(entity, {
+      name: clientDef.name,
+      industry: clientDef.industry,
+      size: clientDef.size,
+    });
+    world.getStore<ClientReputation>(COMPONENTS.CLIENT_REPUTATION).set(entity, {
+      score: clientDef.reputation,
+    });
+  }
+
+  const roster = world.getResource(CLIENT_ROSTER);
+  roster.activeClients = STARTER_CLIENTS.length;
+  roster.totalClientsEver = STARTER_CLIENTS.length;
+
   // --- Register systems (priority order: lower runs first) ---
   world.addSystem('clock', clockSystem, 1);
   world.addSystem('behavior', behaviorSystem, 10);
@@ -226,7 +257,8 @@ export function createWorld(
   world.addSystem('pipeline', pipelineSystem, 30);
   world.addSystem('taskProduction', taskProductionSystem, 31);
   world.addSystem('quotes', quoteSystem, 35);
+  world.addSystem('clientManager', clientManagerSystem, 40);
   world.addSystem('snapshot', snapshotSystem, 100);
 
-  return { world, personEntities, furnitureEntities, deskEntities };
+  return { world, personEntities, furnitureEntities, deskEntities, clientEntities };
 }

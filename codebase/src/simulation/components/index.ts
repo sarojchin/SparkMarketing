@@ -180,6 +180,22 @@ export interface TileData {
   variant: number; // for visual variation
 }
 
+// --- Client ---
+
+export interface ClientTag {
+  _brand: 'client';
+}
+
+export interface ClientIdentity {
+  name: string;
+  industry: string;
+  size: number; // number of employees at the client company
+}
+
+export interface ClientReputation {
+  score: number; // 0-100
+}
+
 // Component name constants — prevents typos
 export const COMPONENTS = {
   POSITION: 'position',
@@ -203,4 +219,7 @@ export const COMPONENTS = {
   ATTRIBUTES: 'attributes',
   ASSIGNED_TASK: 'assignedTask',
   PRODUCTION_COUNTERS: 'productionCounters',
+  CLIENT_TAG: 'clientTag',
+  CLIENT_IDENTITY: 'clientIdentity',
+  CLIENT_REPUTATION: 'clientReputation',
 } as const;
