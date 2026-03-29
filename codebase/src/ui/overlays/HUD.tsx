@@ -10,11 +10,12 @@ function formatTime(minutes: number): string {
 }
 
 export function HUD() {
-  const { simMinutes, simDay, speed, setSpeed } = useSimStore((s) => ({
+  const { simMinutes, simDay, speed, setSpeed, activeClientCount } = useSimStore((s) => ({
     simMinutes: s.simMinutes,
     simDay: s.simDay,
     speed: s.speed,
     setSpeed: s.setSpeed,
+    activeClientCount: s.activeClientCount,
   }));
 
   const day = DAYS[simDay % 5] || 'Monday';
@@ -29,6 +30,9 @@ export function HUD() {
         </div>
         <div className="text-[7px] font-pixel text-sim-textDim tracking-[1px] mt-0.5">
           Marketing &amp; Creative · Est. 2024
+        </div>
+        <div className="text-[7px] font-pixel text-sim-green tracking-[1px] mt-0.5">
+          {activeClientCount} {activeClientCount === 1 ? 'client' : 'clients'}
         </div>
       </div>
 

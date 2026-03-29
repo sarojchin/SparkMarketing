@@ -67,3 +67,17 @@ export interface ClientRoster {
 }
 
 export const CLIENT_ROSTER = new ResourceKey<ClientRoster>('clientRoster');
+
+// --- Client Acquisition ---
+
+export interface PendingAcquisition {
+  prospectIndex: number;
+  resolveAtAbsoluteMinute: number;
+}
+
+export interface ClientAcquisition {
+  lastThresholdProcessed: number;
+  pendingResults: PendingAcquisition[];
+}
+
+export const CLIENT_ACQUISITION = new ResourceKey<ClientAcquisition>('clientAcquisition');

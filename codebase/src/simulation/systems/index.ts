@@ -7,3 +7,4 @@ export { pipelineSystem } from './production';
 export { quoteSystem } from './quotes';
 export { taskProductionSystem } from './taskProduction';
 export { clientManagerSystem } from './clientManager';
+export { clientAcquisitionSystem, setupClientAcquisitionBridge } from './clientAcquisitionSystem';

@@ -75,7 +75,7 @@ export interface WorldEvents {
   'entity:spawned': { entity: EntityId };
   'entity:despawned': { entity: EntityId };
   'behavior:changed': { entity: EntityId; from: string; to: string };
-  'client:acquired': { entity: EntityId; name: string };
+  'client:acquired': { entity: EntityId; name: string; industry: string; size: number; project: string };
   'client:lost': { entity: EntityId; name: string; reason: string };
 }
 

@@ -11,6 +11,7 @@ import { useSimStore } from '@/hooks/useSimStore';
 
 import { HUD } from '@/ui/overlays/HUD';
 import { Tooltip } from '@/ui/overlays/Tooltip';
+import { ClientAcquisitionPopup } from '@/ui/overlays/ClientAcquisitionPopup';
 import { TeamPanel } from '@/ui/panels/TeamPanel';
 import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
@@ -157,6 +158,7 @@ export default function App() {
         />
         <HUD />
         <Tooltip x={mousePos.x} y={mousePos.y} />
+        <ClientAcquisitionPopup />
         <PipelinePanel />
         <CharacterPanel />
       </div>
