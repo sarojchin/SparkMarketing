@@ -154,7 +154,8 @@ src/
 │   │   ├── production.ts   # priority 30 (pipeline)
 │   │   ├── taskProduction.ts # priority 31
 │   │   ├── quotes.ts       # priority 35
-│   │   ├── clientManager.ts  # priority 40 (stub — counts entities only)
+│   │   ├── clientManager.ts  # priority 40
+│   │   ├── clientAcquisitionSystem.ts  # priority 41 (acquisition funnel + bridge)
 │   │   ├── snapshot.ts     # priority 100
 │   │   └── log-bridge.ts   # event subscriber (not a tick system)
 │   ├── registries/         # Pluggable behavior handler registry
@@ -178,6 +179,7 @@ src/
 | 31 | taskProduction | Independent task counters (calls, emails, campaigns) |
 | 35 | quotes | Flavor text speech bubbles |
 | 40 | clientManager | Syncs CLIENT_ROSTER.activeClients from actual client entities |
+| 41 | clientAcquisitionSystem | Watches call thresholds; spawns acquired client entities; emits `client:acquired` |
 | 100 | snapshot | Syncs ECS → Zustand every 200ms |
 | — | log-bridge | Event subscriber (not a tick system): forwards `log` events → Zustand |
 
@@ -192,15 +194,15 @@ src/
 
 ### Client Architecture
 
-Clients are ECS entities (not UI-side objects) spawned at world creation by `factory.ts`.
+Clients are ECS entities (not UI-side objects) spawned exclusively through the acquisition funnel — **not** at world creation. The game starts with zero clients.
 
-**Static data**: `src/simulation/data/clients.ts` exports `STARTER_CLIENTS` — 3 pre-defined clients (GreenLeaf Organics, ByteWise Solutions, Urban Threads) with id, name, industry, size, reputation.
+**Static data**: `src/simulation/data/clients.ts` exports `STARTER_CLIENTS` (kept as reference) and `PROSPECT_POOL` — 12 prospects that `clientAcquisitionSystem` draws from when a conversion fires.
 
 **Components on a client entity**: `ClientTag` (query marker), `ClientIdentity` (name, industry, size), `ClientReputation` (score 0–100)
 
 **Resource**: `CLIENT_ROSTER` tracks { activeClients, totalClientsEver, maxClients }. `clientManager` system updates `activeClients` each tick by counting entities with `ClientTag`.
 
-**Current state**: Clients are spawned and queryable. `clientManager.ts` is a functional but minimal stub — it counts entities, nothing more. No acquisition funnel, billing, or satisfaction system exists yet.
+**Acquisition flow**: Every 150 cold calls, `clientAcquisitionSystem` picks a random prospect and queues a 1-minute pending acquisition. After 1 game-minute, there's a 20% chance the prospect converts — spawning a new entity with `ClientTag` + identity + reputation, emitting `client:acquired`, and triggering the `ClientAcquisitionPopup`. The `ClientPanel` in the bottom bar lists all active (acquired) clients.
 
 ### Data Flow
 ```
@@ -222,7 +224,7 @@ The World exposes a typed event bus (`world.on` / `world.emit`). All events are 
 | `entity:spawned` | `{ entity }` | `world.spawn()` (automatic) |
 | `entity:despawned` | `{ entity }` | `world.despawn()` (automatic) |
 | `behavior:changed` | `{ entity, from, to }` | behavior system |
-| `client:acquired` | `{ entity, name }` | reserved — not yet fired |
+| `client:acquired` | `{ entity, name, industry, size, project }` | clientAcquisitionSystem |
 | `client:lost` | `{ entity, name, reason }` | reserved — not yet fired |
 
 `log-bridge` (`src/simulation/systems/log-bridge.ts`) is the only subscriber outside the ECS layer. It subscribes to `log` and pushes messages to `useSimStore.addLog()`.
@@ -249,11 +251,10 @@ The World exposes a typed event bus (`world.on` / `world.emit`). All events are 
 - [x] Flavor quotes with phase-specific categories
 - [x] Activity log with timestamps
 - [x] UI panels: HUD (overlay), Tooltip (hover overlay), Pipeline, Character, Team, Info, Outreach, Client, Log
-- [~] Client entities (ECS entities with ClientTag/ClientIdentity/ClientReputation spawned at startup; clientManager keeps roster count; acquisition funnel not built)
+- [x] Client acquisition funnel — every 150 calls triggers a prospect; 1-min pending window; 20% conversion spawns a `ClientTag` entity; `ClientAcquisitionPopup` fires; `ClientPanel` lists acquired clients (shows "None" at start)
 
 ## What's NOT Built Yet
 
-- [ ] **Client acquisition funnel** — calls → responses → conversions → active clients
 - [ ] **Client review + payment cycle** — deliver campaign → review period → get paid
 - [ ] **Monthly expenses** — rent, utilities, salaries due monthly
 - [ ] **Hiring system** — recruit new employees from a candidate pool
