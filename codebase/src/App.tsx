@@ -19,7 +19,7 @@ import { PipelinePanel } from '@/ui/panels/PipelinePanel';
 import { CharacterPanel } from '@/ui/panels/CharacterPanel';
 import { OutreachPanel } from '@/ui/panels/OutreachPanel';
 import { ClientPanel } from '@/ui/panels/ClientPanel';
-import { ClientDetailPanel } from '@/ui/panels/ClientDetailPanel';
+import { ClientsPanel } from '@/ui/panels/ClientsPanel';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -163,7 +163,7 @@ export default function App() {
         <ClientAcquisitionPopup />
         <PipelinePanel />
         <CharacterPanel />
-        <ClientDetailPanel />
+        <ClientsPanel />
       </div>
 
       {/* Bottom panel */}

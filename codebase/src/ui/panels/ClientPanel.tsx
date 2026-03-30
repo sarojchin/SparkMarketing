@@ -2,8 +2,8 @@ import { useSimStore } from '@/hooks/useSimStore';
 
 export function ClientPanel() {
   const clients = useSimStore((s) => s.clients);
-  const selectedClient = useSimStore((s) => s.selectedClient);
-  const setSelectedClient = useSimStore((s) => s.setSelectedClient);
+  const selectedClientEntity = useSimStore((s) => s.selectedClientEntity);
+  const setSelectedClientEntity = useSimStore((s) => s.setSelectedClientEntity);
 
   return (
     <div className="p-3 h-full overflow-y-auto">
@@ -15,11 +15,11 @@ export function ClientPanel() {
       ) : (
         <div className="space-y-1.5">
           {clients.map((client) => {
-            const isSelected = selectedClient === client.entity;
+            const isSelected = selectedClientEntity === client.entity;
             return (
               <button
                 key={client.entity}
-                onClick={() => setSelectedClient(isSelected ? null : client.entity)}
+                onClick={() => setSelectedClientEntity(isSelected ? null : client.entity)}
                 className={`min-w-0 w-full text-left px-1 py-0.5 rounded transition-colors ${
                   isSelected
                     ? 'bg-green-50 border border-green-300'
