@@ -17,9 +17,9 @@ import { InfoPanel } from '@/ui/panels/InfoPanel';
 import { LogPanel } from '@/ui/panels/LogPanel';
 import { PipelinePanel } from '@/ui/panels/PipelinePanel';
 import { CharacterPanel } from '@/ui/panels/CharacterPanel';
-import { ClientsPanel } from '@/ui/panels/ClientsPanel';
 import { OutreachPanel } from '@/ui/panels/OutreachPanel';
 import { ClientPanel } from '@/ui/panels/ClientPanel';
+import { ClientsPanel } from '@/ui/panels/ClientsPanel';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -55,12 +55,10 @@ export function ClientsPanel() {
         <div className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
           Details
         </div>
-
         <div className="flex items-center justify-between">
           <span className="text-[7px] font-pixel text-sim-text">Industry</span>
           <span className="text-[7px] font-pixel text-sim-textDim">{client.industry}</span>
         </div>
-
         <div className="flex items-center justify-between">
           <span className="text-[7px] font-pixel text-sim-text">Size</span>
           <span className="text-[7px] font-pixel text-sim-text">{client.size} employees</span>
@@ -90,6 +88,58 @@ export function ClientsPanel() {
           {client.reputation}/100
         </div>
       </div>
+
+      {/* Project Details */}
+      <div className="px-2.5 py-2 border-t border-sim-border space-y-1.5">
+        <div className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
+          Project
+        </div>
+        <div className="text-[7px] font-pixel text-sim-text leading-relaxed">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt
+          ut labore et dolore magna aliqua.
+        </div>
+        <div className="space-y-1 mt-1">
+          <InfoRow label="Budget" value="$12,000" color="#16a34a" />
+          <InfoRow label="Deadline" value="14 days" />
+          <InfoRow label="Status" value="In Progress" color="#ca8a04" />
+        </div>
+      </div>
+
+      {/* Deliverables */}
+      <div className="px-2.5 py-2 border-t border-sim-border space-y-1.5">
+        <div className="text-[6px] font-pixel text-sim-textDim uppercase tracking-[1.5px]">
+          Deliverables
+        </div>
+        <div className="space-y-0.5">
+          <DeliverableRow label="Brand Strategy Doc" done />
+          <DeliverableRow label="Social Media Campaign" done={false} />
+          <DeliverableRow label="Email Sequence" done={false} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[7px] font-pixel text-sim-textDim">{label}</span>
+      <span className="text-[7px] font-pixel" style={color ? { color } : undefined}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function DeliverableRow({ label, done }: { label: string; done: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={`text-[7px] ${done ? 'text-sim-green' : 'text-sim-textDim'}`}>
+        {done ? '✓' : '○'}
+      </span>
+      <span className={`text-[7px] font-pixel ${done ? 'text-sim-text' : 'text-sim-textDim'}`}>
+        {label}
+      </span>
     </div>
   );
 }
