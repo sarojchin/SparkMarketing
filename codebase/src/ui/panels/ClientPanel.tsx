@@ -9,7 +9,7 @@ export function ClientPanel() {
         Clients
       </div>
       {clients.length === 0 ? (
-        <div className="text-[7px] text-sim-textDim font-pixel italic">No clients yet</div>
+        <div className="text-[7px] text-sim-textDim font-pixel">None</div>
       ) : (
         <div className="space-y-1.5">
           {clients.map((client) => (

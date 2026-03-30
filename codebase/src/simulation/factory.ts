@@ -34,7 +34,6 @@ export interface WorldSetupResult {
   personEntities: Map<string, EntityId>;
   furnitureEntities: EntityId[];
   deskEntities: EntityId[];
-  clientEntities: Map<string, EntityId>;
 }
 
 export function createWorld(
@@ -235,27 +234,6 @@ export function createWorld(
     });
   }
 
-  // --- Spawn clients ---
-  const clientEntities = new Map<string, EntityId>();
-  for (const clientDef of STARTER_CLIENTS) {
-    const entity = world.spawn();
-    clientEntities.set(clientDef.id, entity);
-
-    world.getStore<ClientTag>(COMPONENTS.CLIENT_TAG).set(entity, { _brand: 'client' });
-    world.getStore<ClientIdentity>(COMPONENTS.CLIENT_IDENTITY).set(entity, {
-      name: clientDef.name,
-      industry: clientDef.industry,
-      size: clientDef.size,
-    });
-    world.getStore<ClientReputation>(COMPONENTS.CLIENT_REPUTATION).set(entity, {
-      score: clientDef.reputation,
-    });
-  }
-
-  const roster = world.getResource(CLIENT_ROSTER);
-  roster.activeClients = STARTER_CLIENTS.length;
-  roster.totalClientsEver = STARTER_CLIENTS.length;
-
   // --- Register systems (priority order: lower runs first) ---
   world.addSystem('clock', clockSystem, 1);
   world.addSystem('behavior', behaviorSystem, 10);
@@ -267,5 +245,5 @@ export function createWorld(
   world.addSystem('clientAcquisition', clientAcquisitionSystem, 41);
   world.addSystem('snapshot', snapshotSystem, 100);
 
-  return { world, personEntities, furnitureEntities, deskEntities, clientEntities };
+  return { world, personEntities, furnitureEntities, deskEntities };
 }
