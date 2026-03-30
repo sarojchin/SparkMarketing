@@ -164,7 +164,7 @@ src/
 ├── hooks/                  # Zustand store (useSimStore) — read-only ECS bridge
 ├── ui/
 │   ├── overlays/           # HUD, Tooltip (floating over canvas)
-│   └── panels/             # Bottom bar panels (Pipeline, Character, Team, Info, Outreach, Log)
+│   └── panels/             # Bottom bar panels (Pipeline, Character, Team, Info, Outreach, Client, Log)
 └── utils/                  # Seeded PRNG (seed 12345), BFS pathfinding
 ```
 
@@ -248,7 +248,7 @@ The World exposes a typed event bus (`world.on` / `world.emit`). All events are 
 - [x] Morale and energy bars (displayed, but static — no drain/recharge yet)
 - [x] Flavor quotes with phase-specific categories
 - [x] Activity log with timestamps
-- [x] UI panels: HUD (overlay), Tooltip (hover overlay), Pipeline, Character, Team, Info, Outreach, Log
+- [x] UI panels: HUD (overlay), Tooltip (hover overlay), Pipeline, Character, Team, Info, Outreach, Client, Log
 - [~] Client entities (ECS entities with ClientTag/ClientIdentity/ClientReputation spawned at startup; clientManager keeps roster count; acquisition funnel not built)
 
 ## What's NOT Built Yet

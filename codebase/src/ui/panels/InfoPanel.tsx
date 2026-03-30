@@ -1,10 +1,7 @@
 import { useSimStore } from '@/hooks/useSimStore';
 
 export function InfoPanel() {
-  const { bank, activeClientCount } = useSimStore((s) => ({
-    bank: s.bank,
-    activeClientCount: s.activeClientCount,
-  }));
+  const bank = useSimStore((s) => s.bank);
 
   return (
     <div className="p-3">
@@ -12,15 +9,10 @@ export function InfoPanel() {
         Agency
       </div>
       <div className="space-y-1">
-        {[
-          ['Bank', `$${bank.toLocaleString()}`],
-          ['Clients', String(activeClientCount)],
-        ].map(([label, value]) => (
-          <div key={label} className="flex justify-between text-[8px] font-pixel">
-            <span className="text-sim-textDim">{label}</span>
-            <span className={label === 'Bank' ? 'text-sim-green' : 'text-sim-text'}>{value}</span>
-          </div>
-        ))}
+        <div className="flex justify-between text-[8px] font-pixel">
+          <span className="text-sim-textDim">Bank</span>
+          <span className="text-sim-green">${bank.toLocaleString()}</span>
+        </div>
       </div>
     </div>
   );
