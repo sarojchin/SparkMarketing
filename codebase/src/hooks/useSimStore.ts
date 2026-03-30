@@ -75,6 +75,7 @@ interface SimState {
   // UI
   selectedEntity: EntityId | null;
   hoveredEntity: EntityId | null;
+  selectedClient: EntityId | null;
 
   // Production
   campaignsShipped: number;
@@ -111,6 +112,7 @@ interface SimState {
   updatePeople: (people: PersonSnapshot[]) => void;
   setSelectedEntity: (entity: EntityId | null) => void;
   setHoveredEntity: (entity: EntityId | null) => void;
+  setSelectedClient: (entity: EntityId | null) => void;
   advanceTime: (dt: number) => void;
   syncClock: (tick: number, simMinutes: number, simDay: number, speed: number) => void;
   syncCampaign: (campaignsShipped: number, grossIncome: number, bank: number) => void;
@@ -146,6 +148,7 @@ export const useSimStore = create<SimState>((set, get) => ({
 
   selectedEntity: null,
   hoveredEntity: null,
+  selectedClient: null,
 
   campaignsShipped: 0,
   grossIncome: 0,
@@ -176,6 +179,8 @@ export const useSimStore = create<SimState>((set, get) => ({
   setSelectedEntity: (entity) => set({ selectedEntity: entity }),
 
   setHoveredEntity: (entity) => set({ hoveredEntity: entity }),
+
+  setSelectedClient: (entity) => set({ selectedClient: entity }),
 
   syncClock: (tick, simMinutes, simDay, speed) => set({ tick, simMinutes, simDay, speed }),
 

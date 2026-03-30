@@ -13,11 +13,9 @@ import type {
   Identity, BehaviorState, Energy, Morale, Skills,
   DeskAssignment, Interactable, FurnitureTag, BehaviorWeights,
   PipelineState, Attributes, AssignedTask, ProductionCounters,
-  ClientTag, ClientIdentity, ClientReputation,
 } from '@/simulation/components';
 import type { MapDefinition } from '@/simulation/data/maps';
 import type { CharacterDef } from '@/simulation/data/characters';
-import { STARTER_CLIENTS } from '@/simulation/data/clients';
 import { SIM_CLOCK, TILEMAP, CAMPAIGN, PLAYER_DIRECTIVE, CLIENT_ROSTER, CLIENT_ACQUISITION } from '@/simulation/resources';
 import {
   behaviorSystem, movementSystem, clockSystem, snapshotSystem,

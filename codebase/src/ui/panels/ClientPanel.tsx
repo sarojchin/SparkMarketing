@@ -2,6 +2,8 @@ import { useSimStore } from '@/hooks/useSimStore';
 
 export function ClientPanel() {
   const clients = useSimStore((s) => s.clients);
+  const selectedClient = useSimStore((s) => s.selectedClient);
+  const setSelectedClient = useSimStore((s) => s.setSelectedClient);
 
   return (
     <div className="p-3 h-full overflow-y-auto">
@@ -12,15 +14,26 @@ export function ClientPanel() {
         <div className="text-[7px] text-sim-textDim font-pixel">None</div>
       ) : (
         <div className="space-y-1.5">
-          {clients.map((client) => (
-            <div key={client.entity} className="min-w-0">
-              <div className="text-[8px] text-sim-text font-pixel truncate">{client.name}</div>
-              <div className="flex justify-between items-center gap-1">
-                <span className="text-[7px] text-sim-textDim font-pixel truncate">{client.industry}</span>
-                <span className="text-[7px] text-sim-green font-pixel flex-shrink-0">{client.reputation}★</span>
-              </div>
-            </div>
-          ))}
+          {clients.map((client) => {
+            const isSelected = selectedClient === client.entity;
+            return (
+              <button
+                key={client.entity}
+                onClick={() => setSelectedClient(isSelected ? null : client.entity)}
+                className={`min-w-0 w-full text-left px-1 py-0.5 rounded transition-colors ${
+                  isSelected
+                    ? 'bg-green-50 border border-green-300'
+                    : 'hover:bg-sim-bg border border-transparent'
+                }`}
+              >
+                <div className="text-[8px] text-sim-text font-pixel truncate">{client.name}</div>
+                <div className="flex justify-between items-center gap-1">
+                  <span className="text-[7px] text-sim-textDim font-pixel truncate">{client.industry}</span>
+                  <span className="text-[7px] text-sim-green font-pixel flex-shrink-0">{client.reputation}★</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
