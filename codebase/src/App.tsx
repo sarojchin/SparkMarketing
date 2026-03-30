@@ -18,6 +18,7 @@ import { LogPanel } from '@/ui/panels/LogPanel';
 import { PipelinePanel } from '@/ui/panels/PipelinePanel';
 import { CharacterPanel } from '@/ui/panels/CharacterPanel';
 import { OutreachPanel } from '@/ui/panels/OutreachPanel';
+import { ClientPanel } from '@/ui/panels/ClientPanel';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -173,6 +174,9 @@ export default function App() {
         </div>
         <div className="w-[140px] border-r border-sim-border">
           <OutreachPanel />
+        </div>
+        <div className="w-[160px] border-r border-sim-border overflow-y-auto">
+          <ClientPanel />
         </div>
         <div className="flex-1 overflow-y-auto">
           <LogPanel />
