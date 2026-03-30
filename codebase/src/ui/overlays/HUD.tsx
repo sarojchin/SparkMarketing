@@ -10,29 +10,62 @@ function formatTime(minutes: number): string {
 }
 
 export function HUD() {
-  const { simMinutes, simDay, speed, setSpeed, activeClientCount } = useSimStore((s) => ({
+  const { simMinutes, simDay, speed, setSpeed, activeClientCount, clients, selectedClientEntity, setSelectedClientEntity } = useSimStore((s) => ({
     simMinutes: s.simMinutes,
     simDay: s.simDay,
     speed: s.speed,
     setSpeed: s.setSpeed,
     activeClientCount: s.activeClientCount,
+    clients: s.clients,
+    selectedClientEntity: s.selectedClientEntity,
+    setSelectedClientEntity: s.setSelectedClientEntity,
   }));
 
   const day = DAYS[simDay % 5] || 'Monday';
 
   return (
     <>
-      {/* Top left — title */}
-      <div className="fixed top-3 left-3.5 z-10 pointer-events-none">
-        <div className="text-[10px] font-pixel text-sim-green tracking-[2px]"
-          style={{ textShadow: '0 1px 2px rgba(22,163,74,0.2)' }}>
-          SPARK AGENCY
+      {/* Top left — title + clients */}
+      <div className="fixed top-3 left-3.5 z-10">
+        <div className="pointer-events-none">
+          <div className="text-[10px] font-pixel text-sim-green tracking-[2px]"
+            style={{ textShadow: '0 1px 2px rgba(22,163,74,0.2)' }}>
+            SPARK AGENCY
+          </div>
+          <div className="text-[7px] font-pixel text-sim-textDim tracking-[1px] mt-0.5">
+            Marketing &amp; Creative · Est. 2024
+          </div>
         </div>
-        <div className="text-[7px] font-pixel text-sim-textDim tracking-[1px] mt-0.5">
-          Marketing &amp; Creative · Est. 2024
-        </div>
-        <div className="text-[7px] font-pixel text-sim-green tracking-[1px] mt-0.5">
-          {activeClientCount} {activeClientCount === 1 ? 'client' : 'clients'}
+
+        {/* Clients section — clickable */}
+        <div className="mt-1.5">
+          <div className="text-[7px] font-pixel text-sim-textDim tracking-[1px] pointer-events-none mb-0.5">
+            CLIENTS ({activeClientCount})
+          </div>
+          {clients.length === 0 ? (
+            <div className="text-[7px] font-pixel text-sim-textDim italic pointer-events-none">
+              None
+            </div>
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              {clients.map((client) => {
+                const isSelected = selectedClientEntity === client.entity;
+                return (
+                  <button
+                    key={client.entity}
+                    onClick={() => setSelectedClientEntity(isSelected ? null : client.entity)}
+                    className={`text-left text-[7px] font-pixel px-1.5 py-0.5 rounded transition-colors
+                      ${isSelected
+                        ? 'text-sim-green border border-sim-green bg-green-50/10'
+                        : 'text-sim-text border border-sim-border hover:border-sim-textDim hover:text-sim-green'
+                      }`}
+                  >
+                    {client.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
